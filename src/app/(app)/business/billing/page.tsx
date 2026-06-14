@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import Link from "next/link";
 import InvoiceActions from "./InvoiceActions";
+import ApplyToPersonal from "./ApplyToPersonal";
 import { Printer } from "lucide-react";
 
 const statusColor: Record<string, string> = {
@@ -57,8 +58,16 @@ export default async function BillingPage() {
                   {inv.dueDate ? format(new Date(inv.dueDate), "MMM d, yyyy") : "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <InvoiceActions clients={clients} invoice={inv} />
+                    {inv.status === "paid" && (
+                      <ApplyToPersonal
+                        invoiceId={inv.id}
+                        amount={inv.amount}
+                        clientName={inv.client.company || inv.client.name}
+                        invoiceNumber={inv.invoiceNumber}
+                      />
+                    )}
                     <Link
                       href={`/business/clients/${inv.clientId}/invoice/${inv.id}`}
                       target="_blank"

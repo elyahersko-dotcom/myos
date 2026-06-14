@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, X, Check, Trash2, Printer, Pencil } from "lucide-react";
+import { Plus, X, Check, Trash2, Printer, Pencil, ArrowDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Project = {
@@ -454,6 +454,9 @@ export default function ClientHub({ client }: { client: Client }) {
                         Mark Paid
                       </button>
                     )}
+                    {inv.status === "paid" && (
+                      <ApplyToPersonalButton amount={inv.amount} clientName={client.company || client.name} invoiceNumber={inv.invoiceNumber} />
+                    )}
                     <Link
                       href={`/business/clients/${client.id}/invoice/${inv.id}`}
                       target="_blank"
@@ -734,6 +737,33 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         {children}
       </div>
     </div>
+  );
+}
+
+function ApplyToPersonalButton({ amount, clientName, invoiceNumber }: { amount: number; clientName: string; invoiceNumber: string | null }) {
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
+  async function apply() {
+    if (done) return;
+    setLoading(true);
+    await fetch("/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount, type: "income", category: "income",
+        description: `${invoiceNumber ? invoiceNumber + " – " : ""}${clientName}`,
+        date: new Date().toISOString(),
+      }),
+    });
+    setLoading(false);
+    setDone(true);
+  }
+  if (done) return <span className="text-xs text-emerald-400 font-medium">✓ Applied to Personal</span>;
+  return (
+    <button onClick={apply} disabled={loading}
+      className="flex items-center gap-1 text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg px-2 py-1 transition-colors disabled:opacity-50">
+      <ArrowDownLeft size={12} />{loading ? "Applying…" : "→ Personal"}
+    </button>
   );
 }
 
