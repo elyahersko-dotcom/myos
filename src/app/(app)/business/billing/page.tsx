@@ -62,7 +62,6 @@ export default async function BillingPage() {
                     <InvoiceActions clients={clients} invoice={inv} />
                     {inv.status === "paid" && (
                       <ApplyToPersonal
-                        invoiceId={inv.id}
                         amount={inv.amount}
                         clientName={inv.client.company || inv.client.name}
                         invoiceNumber={inv.invoiceNumber}

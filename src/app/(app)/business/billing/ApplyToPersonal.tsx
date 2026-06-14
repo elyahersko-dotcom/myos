@@ -3,12 +3,10 @@ import { useState } from "react";
 import { ArrowDownLeft } from "lucide-react";
 
 export default function ApplyToPersonal({
-  invoiceId: _invoiceId,
   amount,
   clientName,
   invoiceNumber,
 }: {
-  invoiceId: string;
   amount: number;
   clientName: string;
   invoiceNumber?: string | null;
