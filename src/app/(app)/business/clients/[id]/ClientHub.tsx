@@ -489,6 +489,68 @@ export default function ClientHub({ client }: { client: Client }) {
       {showInvoiceForm && (
         <Modal title="New Invoice" onClose={() => setShowInvoiceForm(false)}>
           <form onSubmit={createInvoice} className="space-y-3">
+            {/* Project selector — auto-populates everything */}
+            {projects.length > 0 && (
+              <Field label="Link to Project">
+                <select value={invoiceForm.projectId} onChange={e => {
+                  const projectId = e.target.value;
+                  const project = projects.find(p => p.id === projectId);
+                  if (project) {
+                    const invoiceCount = invoices.filter(i => i.projectId === projectId).length + 1;
+                    const invoiceNum = `INV-${client.name.split(" ")[0].toUpperCase()}-${String(invoiceCount).padStart(3, "0")}`;
+                    // Default to deposit invoice if deposit not paid, otherwise full balance
+                    const isDeposit = !project.depositPaid && project.depositAmount > 0;
+                    const amount = isDeposit ? project.depositAmount : project.totalCost - project.depositAmount;
+                    const description = isDeposit
+                      ? `Deposit – ${project.name}`
+                      : `Balance due – ${project.name}`;
+                    setInvoiceForm({
+                      ...invoiceForm,
+                      projectId,
+                      invoiceNumber: invoiceNum,
+                      notes: `Project: ${project.name}`,
+                      lineItems: [{ description, quantity: "1", unitPrice: String(amount) }],
+                      amount: String(amount),
+                    });
+                  } else {
+                    setInvoiceForm({ ...invoiceForm, projectId: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }] });
+                  }
+                }} className={input}>
+                  <option value="">No project</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.totalCost.toLocaleString()}</option>)}
+                </select>
+              </Field>
+            )}
+
+            {/* Show project summary when selected */}
+            {invoiceForm.projectId && (() => {
+              const p = projects.find(pr => pr.id === invoiceForm.projectId);
+              if (!p) return null;
+              return (
+                <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-1">
+                  <div className="flex justify-between text-gray-400"><span>Project Total</span><span className="text-white font-medium">${p.totalCost.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-gray-400"><span>Deposit</span><span className="text-white">${p.depositAmount.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-gray-400"><span>Balance Due</span><span className="text-orange-400 font-medium">${(p.totalCost - p.depositAmount).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-gray-400"><span>Deposit Paid?</span><span className={p.depositPaid ? "text-green-400" : "text-red-400"}>{p.depositPaid ? "Yes" : "No"}</span></div>
+                  {/* Quick-fill buttons */}
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Deposit – ${p.name}`, quantity: "1", unitPrice: String(p.depositAmount) }] })}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
+                      Fill Deposit (${p.depositAmount.toLocaleString()})
+                    </button>
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Balance due – ${p.name}`, quantity: "1", unitPrice: String(p.totalCost - p.depositAmount) }] })}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
+                      Fill Balance (${(p.totalCost - p.depositAmount).toLocaleString()})
+                    </button>
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `${p.name} – full payment`, quantity: "1", unitPrice: String(p.totalCost) }] })}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
+                      Full (${p.totalCost.toLocaleString()})
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="grid grid-cols-2 gap-3">
               <Field label="Invoice #"><input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} placeholder="INV-001" className={input} /></Field>
               <Field label="Status">
@@ -497,14 +559,7 @@ export default function ClientHub({ client }: { client: Client }) {
                 </select>
               </Field>
             </div>
-            {projects.length > 0 && (
-              <Field label="Link to Project">
-                <select value={invoiceForm.projectId} onChange={e => setInvoiceForm({ ...invoiceForm, projectId: e.target.value })} className={input}>
-                  <option value="">No project</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </Field>
-            )}
+
             {/* Line Items */}
             <div>
               <label className="block text-xs text-gray-400 mb-2">Line Items</label>
@@ -533,13 +588,15 @@ export default function ClientHub({ client }: { client: Client }) {
               </div>
               <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [...invoiceForm.lineItems, { description: "", quantity: "1", unitPrice: "" }] })}
                 className="mt-2 text-xs text-indigo-400 hover:text-indigo-300">+ Add line item</button>
-              <div className="mt-2 text-right text-sm text-white font-medium">
-                Total: ${invoiceForm.lineItems.reduce((s, li) => s + (parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1")), 0).toLocaleString()}
+              <div className="mt-3 flex justify-between items-center border-t border-gray-700 pt-2">
+                <span className="text-xs text-gray-500">Total</span>
+                <span className="text-white font-bold text-lg">
+                  ${invoiceForm.lineItems.reduce((s, li) => s + (parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1")), 0).toLocaleString()}
+                </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Due Date"><input type="date" value={invoiceForm.dueDate} onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className={input} /></Field>
-            </div>
+
+            <Field label="Due Date"><input type="date" value={invoiceForm.dueDate} onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className={input} /></Field>
             <Field label="Notes"><textarea value={invoiceForm.notes} onChange={e => setInvoiceForm({ ...invoiceForm, notes: e.target.value })} rows={2} className={input} /></Field>
             <ModalButtons loading={loading} onClose={() => setShowInvoiceForm(false)} />
           </form>
