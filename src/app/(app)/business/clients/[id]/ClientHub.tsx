@@ -178,6 +178,21 @@ export default function ClientHub({ client }: { client: Client }) {
     setInvoices(invoices.map(i => i.id === id ? { ...i, status: "paid" } : i));
   }
 
+  async function deleteInvoice(id: string) {
+    await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+    setInvoices(invoices.filter(i => i.id !== id));
+  }
+
+  async function deleteTask(id: string) {
+    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    setTasks(tasks.filter(t => t.id !== id));
+  }
+
+  async function deleteProject(id: string) {
+    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    setProjects(projects.filter(p => p.id !== id));
+  }
+
   async function toggleDepositPaid(projectId: string, current: boolean) {
     await fetch(`/api/projects/${projectId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ depositPaid: !current }) });
     setProjects(projects.map(p => p.id === projectId ? { ...p, depositPaid: !current } : p));
@@ -347,7 +362,13 @@ export default function ClientHub({ client }: { client: Client }) {
                   <h3 className="font-semibold text-white text-lg">{p.name}</h3>
                   {p.description && <p className="text-gray-400 text-sm mt-1">{p.description}</p>}
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[p.status]}`}>{p.status}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[p.status]}`}>{p.status}</span>
+                  <button onClick={() => { if (window.confirm(`Delete project "${p.name}"?`)) deleteProject(p.id); }} title="Delete"
+                    className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-gray-800 rounded-lg p-3">
@@ -408,7 +429,7 @@ export default function ClientHub({ client }: { client: Client }) {
           </div>
           <div className="space-y-2">
             {tasks.map(task => (
-              <div key={task.id} className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+              <div key={task.id} className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 group">
                 <button onClick={() => toggleTaskStatus(task.id, task.status)}
                   className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${task.status === "done" ? "bg-indigo-600 border-indigo-600" : "border-gray-600 hover:border-indigo-500"}`}>
                   {task.status === "done" && <Check size={12} className="text-white" />}
@@ -420,6 +441,10 @@ export default function ClientHub({ client }: { client: Client }) {
                 <span className={`text-xs capitalize flex-shrink-0 ${priorityColor[task.priority]}`}>{task.priority}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs flex-shrink-0 ${statusBadge[task.status]}`}>{task.status}</span>
                 {task.dueDate && <span className="text-xs text-gray-500 flex-shrink-0">{format(new Date(task.dueDate), "MMM d")}</span>}
+                <button onClick={() => deleteTask(task.id)} title="Delete"
+                  className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0">
+                  <Trash2 size={13} />
+                </button>
               </div>
             ))}
             {tasks.length === 0 && <p className="text-center text-gray-500 py-8">No tasks for this client.</p>}
@@ -465,6 +490,10 @@ export default function ClientHub({ client }: { client: Client }) {
                     >
                       <Printer className="w-4 h-4" />
                     </Link>
+                    <button onClick={() => deleteInvoice(inv.id)} title="Delete"
+                      className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 {inv.dueDate && (

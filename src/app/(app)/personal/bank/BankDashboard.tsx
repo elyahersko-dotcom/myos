@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 import { format } from "date-fns";
+import { Trash2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 
 type Transaction = {
@@ -10,11 +12,20 @@ type Transaction = {
 const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"];
 
 export default function BankDashboard({
-  transactions, income, expenses, categories,
+  transactions: initialTransactions, income, expenses, categories,
 }: {
   transactions: Transaction[]; income: number; expenses: number;
   categories: { name: string; value: number }[];
 }) {
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function deleteTransaction(id: string) {
+    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    setTransactions(transactions.filter((t) => t.id !== id));
+    setDeletingId(null);
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -72,23 +83,37 @@ export default function BankDashboard({
             <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Category</th>
             <th className="px-4 py-3 text-left font-medium hidden md:table-cell">Date</th>
             <th className="px-4 py-3 text-right font-medium">Amount</th>
+            <th className="px-4 py-3 w-10"></th>
           </tr></thead>
           <tbody>
             {transactions.slice(0, 50).map((t) => (
-              <tr key={t.id} className="border-b border-gray-800/50">
+              <tr key={t.id} className="border-b border-gray-800/50 group">
                 <td className="px-4 py-3 text-white">
                   <div>{t.merchantName || t.description || "—"}</div>
                   {t.merchantName && t.description && <div className="text-xs text-gray-500">{t.description}</div>}
+                  {deletingId === t.id && (
+                    <div className="flex items-center gap-2 mt-1 bg-red-900/20 rounded-lg px-2 py-1.5">
+                      <span className="text-xs text-red-400 flex-1">Delete?</span>
+                      <button onClick={() => deleteTransaction(t.id)} className="text-xs text-red-400 hover:text-red-300 font-medium">Confirm</button>
+                      <button onClick={() => setDeletingId(null)} className="text-xs text-gray-500 hover:text-white">Cancel</button>
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-gray-400 capitalize hidden sm:table-cell">{t.category}</td>
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{format(new Date(t.date), "MMM d, yyyy")}</td>
                 <td className={`px-4 py-3 text-right font-medium ${t.type === "income" ? "text-emerald-400" : "text-red-400"}`}>
                   {t.type === "income" ? "+" : "-"}${t.amount.toFixed(2)}
                 </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => setDeletingId(t.id)} title="Delete"
+                    className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                    <Trash2 size={13} />
+                  </button>
+                </td>
               </tr>
             ))}
             {transactions.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">No transactions yet. Connect Plaid to sync.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No transactions yet. Connect Plaid to sync.</td></tr>
             )}
           </tbody>
         </table>

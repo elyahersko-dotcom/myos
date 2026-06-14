@@ -11,3 +11,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const invoice = await prisma.invoice.update({ where: { id: params.id }, data: body });
   return NextResponse.json(invoice);
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await prisma.invoice.delete({ where: { id: params.id } });
+  return NextResponse.json({ ok: true });
+}

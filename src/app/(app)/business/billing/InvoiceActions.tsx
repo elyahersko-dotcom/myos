@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 type Client = { id: string; name: string; company: string | null };
 type Invoice = { id: string; clientId: string; amount: number; status: string; dueDate: Date | null };
@@ -38,13 +38,22 @@ export default function InvoiceActions({ clients, invoice }: { clients: Client[]
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (!invoice) return;
+    await fetch(`/api/invoices/${invoice.id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
   if (invoice) {
     return (
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         {invoice.status !== "paid" && (
           <button onClick={markPaid} className="text-xs bg-green-600/20 text-green-400 hover:bg-green-600/30 rounded px-2 py-1 transition-colors">Mark Paid</button>
         )}
         <button onClick={() => setOpen(true)} className="text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 rounded px-2 py-1 transition-colors">Edit</button>
+        <button onClick={handleDelete} title="Delete" className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
+          <Trash2 size={14} />
+        </button>
         {open && <Modal form={form} setForm={setForm} onSubmit={handleSubmit} onClose={() => setOpen(false)} clients={clients} loading={loading} title="Edit Invoice" />}
       </div>
     );

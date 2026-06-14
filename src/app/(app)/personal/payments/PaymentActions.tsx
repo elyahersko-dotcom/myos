@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 type Payment = { id: string; label: string; amount: number; dueDate: Date; recurrence: string; category: string; isPaid: boolean };
 
@@ -37,11 +37,21 @@ export default function PaymentActions({ payment }: { payment?: Payment }) {
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (!payment) return;
+    await fetch(`/api/payments/${payment.id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
   if (payment) {
     return (
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <button onClick={togglePaid} className={`text-xs rounded px-2 py-1 transition-colors ${payment.isPaid ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-green-600/20 text-green-400 hover:bg-green-600/30"}`}>
           {payment.isPaid ? "Undo" : "Mark Paid"}
+        </button>
+        <button onClick={() => setOpen(true)} className="text-xs bg-gray-700 text-gray-300 hover:bg-gray-600 rounded px-2 py-1 transition-colors">Edit</button>
+        <button onClick={handleDelete} title="Delete" className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
+          <Trash2 size={14} />
         </button>
         {open && <Modal form={form} setForm={setForm} onSubmit={handleSubmit} onClose={() => setOpen(false)} loading={loading} title="Edit Payment" />}
       </div>
