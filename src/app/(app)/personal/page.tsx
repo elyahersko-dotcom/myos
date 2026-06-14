@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { CreditCard, BarChart2, Calendar, ListTodo, TrendingDown, TrendingUp } from "lucide-react";
+import { CreditCard, Calendar, ListTodo, TrendingDown, TrendingUp } from "lucide-react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 export default async function PersonalDashboard() {

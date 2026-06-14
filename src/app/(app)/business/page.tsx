@@ -6,7 +6,7 @@ import { startOfDay, endOfDay } from "date-fns";
 export default async function BusinessDashboard() {
   const now = new Date();
 
-  const [clients, tasks, invoices, projects, leads] = await Promise.all([
+  const [, tasks, invoices, projects, leads] = await Promise.all([
     prisma.client.findMany({ where: { status: "active" }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.task.findMany({ where: { status: { not: "done" } }, orderBy: { dueDate: "asc" }, take: 5 }),
     prisma.invoice.findMany({ where: { status: { not: "paid" } }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
