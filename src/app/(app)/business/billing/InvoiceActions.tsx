@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
-type Client = { id: string; name: string };
+type Client = { id: string; name: string; company: string | null };
 type Invoice = { id: string; clientId: string; amount: number; status: string; dueDate: Date | null };
 
 const defaultForm = { clientId: "", amount: "", status: "draft", dueDate: "" };
@@ -75,7 +75,7 @@ function Modal({ form, setForm, onSubmit, onClose, clients, loading, title }: {
             <select value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })} required
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500">
               <option value="">Select client</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.company || c.name}</option>)}
             </select>
           </div>
           <div>

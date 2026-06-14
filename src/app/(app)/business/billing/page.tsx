@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import Link from "next/link";
 import InvoiceActions from "./InvoiceActions";
+import { Printer } from "lucide-react";
 
 const statusColor: Record<string, string> = {
   draft: "bg-gray-500/20 text-gray-400",
@@ -12,7 +14,7 @@ const statusColor: Record<string, string> = {
 export default async function BillingPage() {
   const [invoices, clients] = await Promise.all([
     prisma.invoice.findMany({ include: { client: true }, orderBy: { createdAt: "desc" } }),
-    prisma.client.findMany({ orderBy: { name: "asc" } }),
+    prisma.client.findMany({ orderBy: { company: "asc" } }),
   ]);
 
   return (
@@ -25,6 +27,7 @@ export default async function BillingPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400">
+              <th className="px-4 py-3 text-left font-medium">Invoice #</th>
               <th className="px-4 py-3 text-left font-medium">Client</th>
               <th className="px-4 py-3 text-left font-medium">Amount</th>
               <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -34,8 +37,18 @@ export default async function BillingPage() {
           </thead>
           <tbody>
             {invoices.map((inv) => (
-              <tr key={inv.id} className="border-b border-gray-800/50">
-                <td className="px-4 py-3 text-white">{inv.client.name}</td>
+              <tr key={inv.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                <td className="px-4 py-3 text-gray-400 text-xs">
+                  {inv.invoiceNumber || <span className="text-gray-600">—</span>}
+                </td>
+                <td className="px-4 py-3">
+                  <Link href={`/business/clients/${inv.clientId}`} className="text-white hover:text-indigo-400 transition-colors font-medium">
+                    {inv.client.company || inv.client.name}
+                  </Link>
+                  {inv.client.company && inv.client.name && (
+                    <p className="text-xs text-gray-500 mt-0.5">{inv.client.name}</p>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-white font-medium">${inv.amount.toLocaleString()}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs ${statusColor[inv.status]}`}>{inv.status}</span>
@@ -44,12 +57,22 @@ export default async function BillingPage() {
                   {inv.dueDate ? format(new Date(inv.dueDate), "MMM d, yyyy") : "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <InvoiceActions clients={clients} invoice={inv} />
+                  <div className="flex items-center gap-2">
+                    <InvoiceActions clients={clients} invoice={inv} />
+                    <Link
+                      href={`/business/clients/${inv.clientId}/invoice/${inv.id}`}
+                      target="_blank"
+                      className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors"
+                      title="Print / Download PDF"
+                    >
+                      <Printer size={14} />
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
             {invoices.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No invoices yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No invoices yet.</td></tr>
             )}
           </tbody>
         </table>
