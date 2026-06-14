@@ -10,13 +10,14 @@ async function getDashboardData() {
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
-  const [tasksDueToday, upcomingPayments, outstandingInvoices, newLeads, monthlyTransactions] =
+  const [tasksDueToday, upcomingPayments, unpaidInvoices, allProjects, newLeads, monthlyTransactions] =
     await Promise.all([
       prisma.task.count({
         where: { dueDate: { gte: todayStart, lte: todayEnd }, status: { not: "done" } },
       }),
       prisma.payment.count({ where: { isPaid: false, dueDate: { gte: now } } }),
-      prisma.invoice.findMany({ where: { status: { in: ["sent", "overdue"] } } }),
+      prisma.invoice.findMany({ where: { status: { not: "paid" } } }),
+      prisma.project.findMany({ where: { status: { not: "cancelled" } }, include: { invoices: true } }),
       prisma.lead.count({ where: { stage: "new" } }),
       prisma.transaction.findMany({
         where: { date: { gte: monthStart, lte: monthEnd } },
@@ -29,9 +30,18 @@ async function getDashboardData() {
   const expenses = monthlyTransactions
     .filter((t: { type: string }) => t.type === "expense")
     .reduce((s: number, t: { amount: number }) => s + t.amount, 0);
-  const outstandingTotal = outstandingInvoices.reduce((s: number, i: { amount: number }) => s + i.amount, 0);
 
-  return { tasksDueToday, upcomingPayments, outstandingCount: outstandingInvoices.length, outstandingTotal, newLeads, income, expenses };
+  // Unpaid invoice amounts
+  const unpaidInvoiceTotal = unpaidInvoices.reduce((s: number, i: { amount: number }) => s + i.amount, 0);
+  // Uninvoiced project balances (project total minus what's been invoiced)
+  const uninvoicedTotal = allProjects.reduce((s: number, p: { totalCost: number; invoices: { amount: number }[] }) => {
+    const invoiced = p.invoices.reduce((a, i) => a + i.amount, 0);
+    return s + Math.max(0, p.totalCost - invoiced);
+  }, 0);
+  const outstandingTotal = unpaidInvoiceTotal + uninvoicedTotal;
+  const outstandingCount = unpaidInvoices.length;
+
+  return { tasksDueToday, upcomingPayments, outstandingCount, outstandingTotal, newLeads, income, expenses };
 }
 
 export default async function DashboardPage() {

@@ -158,11 +158,15 @@ export default function ClientHub({ client }: { client: Client }) {
 
   const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
   const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-  // Outstanding = unpaid invoices + project balances not yet invoiced
-  const invoicedProjectIds = new Set(invoices.map(i => i.projectId).filter(Boolean));
+  // Per-project: how much has been invoiced so far
+  const invoicedByProject = invoices.reduce((acc, inv) => {
+    if (inv.projectId) acc[inv.projectId] = (acc[inv.projectId] || 0) + inv.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  // Remaining uninvoiced balance across all active projects
   const uninvoicedProjectTotal = projects
-    .filter(p => !invoicedProjectIds.has(p.id) && p.status !== "cancelled")
-    .reduce((s, p) => s + p.totalCost, 0);
+    .filter(p => p.status !== "cancelled")
+    .reduce((s, p) => s + Math.max(0, p.totalCost - (invoicedByProject[p.id] || 0)), 0);
   const totalOwed = (totalInvoiced - totalPaid) + uninvoicedProjectTotal;
 
   const tabs = [
