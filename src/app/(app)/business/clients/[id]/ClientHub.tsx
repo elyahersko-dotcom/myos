@@ -148,7 +148,12 @@ export default function ClientHub({ client }: { client: Client }) {
 
   const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
   const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-  const totalOwed = totalInvoiced - totalPaid;
+  // Outstanding = unpaid invoices + project balances not yet invoiced
+  const invoicedProjectIds = new Set(invoices.map(i => i.projectId).filter(Boolean));
+  const uninvoicedProjectTotal = projects
+    .filter(p => !invoicedProjectIds.has(p.id) && p.status !== "cancelled")
+    .reduce((s, p) => s + p.totalCost, 0);
+  const totalOwed = (totalInvoiced - totalPaid) + uninvoicedProjectTotal;
 
   const tabs = [
     { key: "overview", label: "Overview" },
@@ -200,6 +205,7 @@ export default function ClientHub({ client }: { client: Client }) {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
           <p className="text-xs text-gray-500 mb-1">Outstanding</p>
           <p className="text-xl font-bold text-orange-400">${totalOwed.toLocaleString()}</p>
+          {uninvoicedProjectTotal > 0 && <p className="text-xs text-gray-600 mt-1">incl. ${uninvoicedProjectTotal.toLocaleString()} from projects</p>}
         </div>
       </div>
 
