@@ -171,6 +171,22 @@ model Transaction {
   createdAt          DateTime @default(now())
 }
 
+model Settings {
+  id               String  @id @default("singleton")
+  // Personal
+  personalName     String?
+  personalEmail    String?
+  personalPhone    String?
+  personalAddress  String?
+  // Business
+  businessName     String?
+  businessEmail    String?
+  businessPhone    String?
+  businessAddress  String?
+  businessTagline  String?
+  updatedAt        DateTime @updatedAt
+}
+
 model Message {
   id        String   @id @default(cuid())
   role      String

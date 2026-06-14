@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Briefcase, Users, CheckSquare, FileText, TrendingUp,
   User, CreditCard, BarChart2, Calendar, ListTodo,
-  MessageSquare, Menu, X, LogOut, LayoutDashboard,
+  MessageSquare, Menu, X, LogOut, LayoutDashboard, Settings,
 } from "lucide-react";
 
 const businessLinks = [
@@ -77,6 +77,7 @@ export default function Sidebar() {
         <Section label="Personal" icon={User} links={personalLinks} color="text-emerald-400" />
         <div className="border-t border-gray-800" />
         <NavLink href="/assistant" label="AI Assistant" icon={MessageSquare} />
+        <NavLink href="/settings" label="Settings" icon={Settings} />
       </nav>
       <div className="px-3 py-4 border-t border-gray-800">
         <button

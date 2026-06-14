@@ -66,10 +66,28 @@ export default function ClientHub({ client }: { client: Client }) {
   });
 
   // Invoice form
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [invoiceForm, setInvoiceForm] = useState({
     projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "",
     lineItems: [{ description: "", quantity: "1", unitPrice: "" }],
   });
+
+  function openEditInvoice(inv: Invoice) {
+    const li = Array.isArray(inv.lineItems) && (inv.lineItems as {description:string;quantity:string;unitPrice:string}[]).length > 0
+      ? (inv.lineItems as {description:string;quantity:string;unitPrice:string}[])
+      : [{ description: "", quantity: "1", unitPrice: String(inv.amount) }];
+    setInvoiceForm({
+      projectId: inv.projectId || "",
+      invoiceNumber: inv.invoiceNumber || "",
+      amount: String(inv.amount),
+      status: inv.status,
+      dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split("T")[0] : "",
+      notes: inv.notes || "",
+      lineItems: li,
+    });
+    setEditingInvoiceId(inv.id);
+    setShowInvoiceForm(true);
+  }
 
   const [loading, setLoading] = useState(false);
 
@@ -140,23 +158,37 @@ export default function ClientHub({ client }: { client: Client }) {
     setLoading(true);
     const lineItems = invoiceForm.lineItems.filter(li => li.description);
     const amount = lineItems.reduce((s, li) => s + (parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1")), 0) || parseFloat(invoiceForm.amount || "0");
-    const res = await fetch("/api/invoices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: client.id,
-        projectId: invoiceForm.projectId || null,
-        invoiceNumber: invoiceForm.invoiceNumber || null,
-        amount,
-        status: invoiceForm.status,
-        dueDate: invoiceForm.dueDate || null,
-        notes: invoiceForm.notes || null,
-        lineItems,
-      }),
-    });
-    const invoice = await res.json();
-    setInvoices([{ ...invoice, project: projects.find(p => p.id === invoiceForm.projectId) || null }, ...invoices]);
+    const payload = {
+      clientId: client.id,
+      projectId: invoiceForm.projectId || null,
+      invoiceNumber: invoiceForm.invoiceNumber || null,
+      amount,
+      status: invoiceForm.status,
+      dueDate: invoiceForm.dueDate || null,
+      notes: invoiceForm.notes || null,
+      lineItems,
+    };
+    if (editingInvoiceId) {
+      const res = await fetch(`/api/invoices/${editingInvoiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const updated = await res.json();
+      setInvoices(invoices.map(i => i.id === editingInvoiceId
+        ? { ...updated, project: projects.find(p => p.id === invoiceForm.projectId) || null }
+        : i));
+    } else {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const invoice = await res.json();
+      setInvoices([{ ...invoice, project: projects.find(p => p.id === invoiceForm.projectId) || null }, ...invoices]);
+    }
     setShowInvoiceForm(false);
+    setEditingInvoiceId(null);
     setInvoiceForm({ projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }] });
     setLoading(false);
   }
@@ -482,6 +514,10 @@ export default function ClientHub({ client }: { client: Client }) {
                     {inv.status === "paid" && (
                       <ApplyToPersonalButton amount={inv.amount} clientName={client.company || client.name} invoiceNumber={inv.invoiceNumber} />
                     )}
+                    <button onClick={() => openEditInvoice(inv)} title="Edit invoice"
+                      className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors">
+                      <Pencil className="w-4 h-4" />
+                    </button>
                     <Link
                       href={`/business/clients/${client.id}/invoice/${inv.id}`}
                       target="_blank"
@@ -625,7 +661,7 @@ export default function ClientHub({ client }: { client: Client }) {
 
       {/* Invoice Modal */}
       {showInvoiceForm && (
-        <Modal title="New Invoice" onClose={() => setShowInvoiceForm(false)}>
+        <Modal title={editingInvoiceId ? "Edit Invoice" : "New Invoice"} onClose={() => { setShowInvoiceForm(false); setEditingInvoiceId(null); }}>
           <form onSubmit={createInvoice} className="space-y-3">
             {/* Project selector — auto-populates everything */}
             {projects.length > 0 && (

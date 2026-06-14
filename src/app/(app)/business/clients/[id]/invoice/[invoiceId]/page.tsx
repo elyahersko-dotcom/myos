@@ -8,13 +8,13 @@ export default async function InvoicePrintPage({
 }: {
   params: { id: string; invoiceId: string };
 }) {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: params.invoiceId },
-    include: {
-      client: true,
-      project: true,
-    },
-  });
+  const [invoice, settings] = await Promise.all([
+    prisma.invoice.findUnique({
+      where: { id: params.invoiceId },
+      include: { client: true, project: true },
+    }),
+    prisma.settings.findUnique({ where: { id: "singleton" } }),
+  ]);
 
   if (!invoice || invoice.clientId !== params.id) notFound();
 
@@ -26,31 +26,37 @@ export default async function InvoicePrintPage({
     ? lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0)
     : invoice.amount;
 
+  const biz = settings;
+
   return (
     <>
-      {/* Print button — hidden when printing */}
       <div className="no-print fixed top-4 right-4 flex gap-2 z-10">
-        <a
-          href={`/business/clients/${params.id}`}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium"
-        >
+        <a href={`/business/clients/${params.id}`} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium">
           ← Back
         </a>
         <PrintButton />
       </div>
 
-      {/* Invoice */}
       <div className="min-h-screen bg-white p-8 md:p-16 max-w-3xl mx-auto font-sans text-gray-900">
-        {/* Header */}
+        {/* Header — business info on left, invoice details on right */}
         <div className="flex justify-between items-start mb-12">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
-            {invoice.invoiceNumber && (
-              <p className="text-gray-500 mt-1">#{invoice.invoiceNumber}</p>
+            {biz?.businessName ? (
+              <>
+                <p className="text-2xl font-bold text-gray-900">{biz.businessName}</p>
+                {biz.businessTagline && <p className="text-gray-500 text-sm mt-0.5">{biz.businessTagline}</p>}
+                {biz.businessEmail && <p className="text-gray-500 text-sm">{biz.businessEmail}</p>}
+                {biz.businessPhone && <p className="text-gray-500 text-sm">{biz.businessPhone}</p>}
+                {biz.businessAddress && <p className="text-gray-500 text-sm whitespace-pre-line">{biz.businessAddress}</p>}
+              </>
+            ) : (
+              <p className="text-xs text-gray-400 italic">Add your business info in Settings</p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">Date</p>
+            <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
+            {invoice.invoiceNumber && <p className="text-gray-500 mt-1">#{invoice.invoiceNumber}</p>}
+            <p className="text-sm text-gray-500 mt-3">Date</p>
             <p className="font-medium">{format(new Date(invoice.createdAt), "MMMM d, yyyy")}</p>
             {invoice.dueDate && (
               <>
@@ -61,11 +67,11 @@ export default async function InvoicePrintPage({
           </div>
         </div>
 
-        {/* Client info */}
+        {/* Bill To */}
         <div className="mb-10">
           <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Bill To</p>
-          <p className="text-lg font-semibold text-gray-900">{invoice.client.name}</p>
-          {invoice.client.company && <p className="text-gray-600">{invoice.client.company}</p>}
+          <p className="text-lg font-semibold text-gray-900">{invoice.client.company || invoice.client.name}</p>
+          {invoice.client.company && invoice.client.name && <p className="text-gray-600">{invoice.client.name}</p>}
           {invoice.client.email && <p className="text-gray-600">{invoice.client.email}</p>}
           {invoice.client.phone && <p className="text-gray-600">{invoice.client.phone}</p>}
         </div>
@@ -89,20 +95,18 @@ export default async function InvoicePrintPage({
             </tr>
           </thead>
           <tbody>
-            {lineItems.length > 0 ? (
-              lineItems.map((li, i) => {
-                const qty = parseFloat(li.quantity || "1");
-                const price = parseFloat(li.unitPrice || "0");
-                return (
-                  <tr key={i} className="border-b border-gray-100">
-                    <td className="py-3 text-gray-800">{li.description}</td>
-                    <td className="py-3 text-center text-gray-600">{qty}</td>
-                    <td className="py-3 text-right text-gray-600">${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3 text-right font-medium">${(qty * price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                );
-              })
-            ) : (
+            {lineItems.length > 0 ? lineItems.map((li, i) => {
+              const qty = parseFloat(li.quantity || "1");
+              const price = parseFloat(li.unitPrice || "0");
+              return (
+                <tr key={i} className="border-b border-gray-100">
+                  <td className="py-3 text-gray-800">{li.description}</td>
+                  <td className="py-3 text-center text-gray-600">{qty}</td>
+                  <td className="py-3 text-right text-gray-600">${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="py-3 text-right font-medium">${(qty * price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                </tr>
+              );
+            }) : (
               <tr className="border-b border-gray-100">
                 <td className="py-3 text-gray-800">Services rendered</td>
                 <td className="py-3 text-center text-gray-600">1</td>
@@ -123,7 +127,7 @@ export default async function InvoicePrintPage({
           </div>
         </div>
 
-        {/* Status badge */}
+        {/* Paid stamp */}
         <div className="mt-4 flex justify-end">
           {invoice.status === "paid" && (
             <span className="border-4 border-green-500 text-green-500 font-extrabold text-2xl px-6 py-2 rounded rotate-[-8deg] opacity-80 uppercase tracking-widest">
