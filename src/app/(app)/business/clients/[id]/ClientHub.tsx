@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, X, Check, Trash2, Printer } from "lucide-react";
+import { Plus, X, Check, Trash2, Printer, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Project = {
@@ -72,6 +72,33 @@ export default function ClientHub({ client }: { client: Client }) {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Edit client
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [clientData, setClientData] = useState({
+    company: client.company || "",
+    name: client.name || "",
+    email: client.email || "",
+    phone: client.phone || "",
+    status: client.status,
+    notes: client.notes || "",
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [displayClient, setDisplayClient] = useState({ ...client });
+
+  async function saveClient(e: React.FormEvent) {
+    e.preventDefault();
+    setEditLoading(true);
+    const res = await fetch(`/api/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(clientData),
+    });
+    const updated = await res.json();
+    setDisplayClient({ ...displayClient, ...updated });
+    setShowEditForm(false);
+    setEditLoading(false);
+  }
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
@@ -182,18 +209,22 @@ export default function ClientHub({ client }: { client: Client }) {
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link href="/business/clients" className="text-sm text-gray-500 hover:text-white">← Clients</Link>
-          <h1 className="text-2xl font-bold text-white mt-1">{client.name}</h1>
-          {client.company && <p className="text-gray-400">{client.company}</p>}
+          <h1 className="text-2xl font-bold text-white mt-1">{displayClient.company || displayClient.name}</h1>
+          {displayClient.company && <p className="text-gray-400 text-sm mt-0.5">Contact: {displayClient.name}</p>}
           <div className="flex gap-3 mt-2 text-sm text-gray-500">
-            {client.email && <span>{client.email}</span>}
-            {client.phone && <span>{client.phone}</span>}
-            <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[client.status] || statusBadge.active}`}>{client.status}</span>
+            {displayClient.email && <span>{displayClient.email}</span>}
+            {displayClient.phone && <span>{displayClient.phone}</span>}
+            <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[displayClient.status] || statusBadge.active}`}>{displayClient.status}</span>
           </div>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowDeleteConfirm(true)}
             className="flex items-center gap-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg px-3 py-2 text-sm transition-colors">
             <Trash2 size={15} /> Delete
+          </button>
+          <button onClick={() => setShowEditForm(true)}
+            className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg px-3 py-2 text-sm transition-colors">
+            <Pencil size={15} /> Edit
           </button>
           <button onClick={() => { setShowProjectForm(true); setActiveTab("projects"); }}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
@@ -240,10 +271,10 @@ export default function ClientHub({ client }: { client: Client }) {
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          {client.notes && (
+          {displayClient.notes && (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-xs text-gray-500 mb-2">Notes</p>
-              <p className="text-white whitespace-pre-wrap text-sm">{client.notes}</p>
+              <p className="text-white whitespace-pre-wrap text-sm">{displayClient.notes}</p>
             </div>
           )}
 
@@ -453,11 +484,44 @@ export default function ClientHub({ client }: { client: Client }) {
         </div>
       )}
 
+      {/* Edit Client Modal */}
+      {showEditForm && (
+        <Modal title="Edit Client" onClose={() => setShowEditForm(false)}>
+          <form onSubmit={saveClient} className="space-y-3">
+            <Field label="Company Name *">
+              <input value={clientData.company} onChange={e => setClientData({ ...clientData, company: e.target.value })} required className={input} placeholder="Acme Corp" />
+            </Field>
+            <Field label="Contact Name">
+              <input value={clientData.name} onChange={e => setClientData({ ...clientData, name: e.target.value })} className={input} placeholder="John Smith" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email">
+                <input type="email" value={clientData.email} onChange={e => setClientData({ ...clientData, email: e.target.value })} className={input} />
+              </Field>
+              <Field label="Phone">
+                <input value={clientData.phone} onChange={e => setClientData({ ...clientData, phone: e.target.value })} className={input} />
+              </Field>
+            </div>
+            <Field label="Status">
+              <select value={clientData.status} onChange={e => setClientData({ ...clientData, status: e.target.value })} className={input}>
+                <option value="active">Active</option>
+                <option value="lead">Lead</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </Field>
+            <Field label="Notes">
+              <textarea value={clientData.notes} onChange={e => setClientData({ ...clientData, notes: e.target.value })} rows={3} className={input} />
+            </Field>
+            <ModalButtons loading={editLoading} onClose={() => setShowEditForm(false)} />
+          </form>
+        </Modal>
+      )}
+
       {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-sm">
-            <h2 className="text-lg font-semibold text-white mb-2">Delete {client.name}?</h2>
+            <h2 className="text-lg font-semibold text-white mb-2">Delete {displayClient.company || displayClient.name}?</h2>
             <p className="text-sm text-gray-400 mb-6">This will permanently delete this client and all their tasks, invoices, and projects. This cannot be undone.</p>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-2 text-sm transition-colors">Cancel</button>

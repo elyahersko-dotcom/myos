@@ -31,6 +31,8 @@ export default function ClientList({ initialClients }: { initialClients: Client[
   }
 
   const confirmClient = clients.find((c) => c.id === confirmId);
+  // Display label is always company if set, otherwise contact name
+  const displayName = (c: Client) => c.company || c.name;
 
   return (
     <>
@@ -38,8 +40,8 @@ export default function ClientList({ initialClients }: { initialClients: Client[
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800">
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Company</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tasks</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Invoices</th>
@@ -59,10 +61,10 @@ export default function ClientList({ initialClients }: { initialClients: Client[
               <tr key={client.id} className="hover:bg-gray-800/50 transition-colors group">
                 <td className="px-4 py-3">
                   <Link href={`/business/clients/${client.id}`} className="text-white font-medium hover:text-indigo-400 transition-colors">
-                    {client.name}
+                    {displayName(client)}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-gray-400 text-sm">{client.company || "—"}</td>
+                <td className="px-4 py-3 text-gray-400 text-sm">{client.company ? client.name || "—" : "—"}</td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client.email || "—"}</td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client._count.tasks}</td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client._count.invoices}</td>
@@ -95,21 +97,14 @@ export default function ClientList({ initialClients }: { initialClients: Client[
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4">
             <h2 className="text-lg font-semibold text-white">Delete Client</h2>
             <p className="text-gray-400 text-sm">
-              Are you sure you want to delete <span className="text-white font-medium">{confirmClient?.name}</span>?
+              Are you sure you want to delete <span className="text-white font-medium">{confirmClient ? (confirmClient.company || confirmClient.name) : ""}</span>?
               This will also delete all their projects, tasks, and invoices. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmId(null)}
-                className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm"
-              >
+              <button onClick={() => setConfirmId(null)} className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm">
                 Cancel
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium"
-              >
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium">
                 {deleting ? "Deleting..." : "Delete"}
               </button>
             </div>
