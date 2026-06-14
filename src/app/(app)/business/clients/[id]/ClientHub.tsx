@@ -2,7 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X, Check, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Project = {
   id: string; name: string; description: string | null; totalCost: number;
@@ -42,7 +43,10 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function ClientHub({ client }: { client: Client }) {
+  const router = useRouter();
   const [tasks, setTasks] = useState(client.tasks);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [invoices, setInvoices] = useState(client.invoices);
   const [projects, setProjects] = useState(client.projects);
   const [activeTab, setActiveTab] = useState<"overview" | "projects" | "tasks" | "invoices">("overview");
@@ -130,6 +134,12 @@ export default function ClientHub({ client }: { client: Client }) {
     setLoading(false);
   }
 
+  async function deleteClient() {
+    setDeleting(true);
+    await fetch(`/api/clients/${client.id}`, { method: "DELETE" });
+    router.push("/business/clients");
+  }
+
   async function toggleTaskStatus(id: string, current: string) {
     const status = current === "done" ? "todo" : "done";
     await fetch(`/api/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
@@ -177,6 +187,10 @@ export default function ClientHub({ client }: { client: Client }) {
           </div>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg px-3 py-2 text-sm transition-colors">
+            <Trash2 size={15} /> Delete
+          </button>
           <button onClick={() => { setShowProjectForm(true); setActiveTab("projects"); }}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
             <Plus size={15} /> Project
@@ -423,6 +437,22 @@ export default function ClientHub({ client }: { client: Client }) {
               </div>
             ))}
             {invoices.length === 0 && <p className="text-center text-gray-500 py-8">No invoices yet.</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-semibold text-white mb-2">Delete {client.name}?</h2>
+            <p className="text-sm text-gray-400 mb-6">This will permanently delete this client and all their tasks, invoices, and projects. This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-2 text-sm transition-colors">Cancel</button>
+              <button onClick={deleteClient} disabled={deleting} className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors">
+                {deleting ? "Deleting…" : "Delete Client"}
+              </button>
+            </div>
           </div>
         </div>
       )}
