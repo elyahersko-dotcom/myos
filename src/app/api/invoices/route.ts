@@ -6,9 +6,18 @@ import { authOptions } from "@/lib/auth";
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { clientId, amount, status, dueDate, lineItems } = await req.json();
+  const body = await req.json();
   const invoice = await prisma.invoice.create({
-    data: { clientId, amount: parseFloat(amount), status: status || "draft", dueDate: dueDate ? new Date(dueDate) : null, lineItems: lineItems || [] },
+    data: {
+      clientId: body.clientId,
+      projectId: body.projectId || null,
+      invoiceNumber: body.invoiceNumber || null,
+      amount: parseFloat(body.amount),
+      status: body.status || "draft",
+      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      lineItems: body.lineItems || [],
+      notes: body.notes || null,
+    },
   });
   return NextResponse.json(invoice);
 }

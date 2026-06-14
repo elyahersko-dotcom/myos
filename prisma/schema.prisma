@@ -64,6 +64,24 @@ model Client {
   updatedAt DateTime  @updatedAt
   tasks     Task[]
   invoices  Invoice[]
+  projects  Project[]
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id])
+  name            String
+  description     String?
+  totalCost       Float
+  depositAmount   Float     @default(0)
+  depositPaid     Boolean   @default(false)
+  status          String    @default("active") // active | completed | on-hold | cancelled
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  invoices        Invoice[]
 }
 
 model Task {
@@ -80,15 +98,19 @@ model Task {
 }
 
 model Invoice {
-  id        String    @id @default(cuid())
-  clientId  String
-  client    Client    @relation(fields: [clientId], references: [id])
-  amount    Float
-  status    String    @default("draft")
-  dueDate   DateTime?
-  lineItems Json      @default("[]")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  invoiceNumber String?
+  amount      Float
+  status      String    @default("draft")
+  dueDate     DateTime?
+  lineItems   Json      @default("[]")
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Lead {
