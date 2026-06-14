@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import PrintButton from "./PrintButton";
 
+const fmt = (n: number) => "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
 export default async function InvoicePrintPage({
   params,
 }: {
@@ -22,9 +24,20 @@ export default async function InvoicePrintPage({
     ? (invoice.lineItems as { description: string; quantity: string; unitPrice: string }[])
     : [];
 
-  const total = lineItems.length > 0
+  const dueNow = lineItems.length > 0
     ? lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0)
     : invoice.amount;
+
+  const project = invoice.project as (typeof invoice.project & { totalCost: number; depositAmount: number; depositPaid: boolean }) | null;
+
+  // Work out project-level payment summary
+  const projectTotal = project?.totalCost ?? null;
+  const depositAmount = project?.depositAmount ?? 0;
+  const depositPaid = project?.depositPaid ?? false;
+
+  // Is this a deposit invoice or a balance invoice?
+  const isDepositInvoice = projectTotal !== null && Math.abs(dueNow - depositAmount) < 0.01;
+  const isBalanceInvoice = projectTotal !== null && !isDepositInvoice;
 
   const biz = settings;
 
@@ -38,7 +51,8 @@ export default async function InvoicePrintPage({
       </div>
 
       <div className="min-h-screen bg-white p-8 md:p-16 max-w-3xl mx-auto font-sans text-gray-900">
-        {/* Header — business info on left, invoice details on right */}
+
+        {/* Header */}
         <div className="flex justify-between items-start mb-12">
           <div>
             {biz?.businessName ? (
@@ -67,20 +81,21 @@ export default async function InvoicePrintPage({
           </div>
         </div>
 
-        {/* Bill To */}
+        {/* Bill To — company name only */}
         <div className="mb-10">
           <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Bill To</p>
-          <p className="text-lg font-semibold text-gray-900">{invoice.client.company || invoice.client.name}</p>
-          {invoice.client.company && invoice.client.name && <p className="text-gray-600">{invoice.client.name}</p>}
+          <p className="text-lg font-semibold text-gray-900">
+            {invoice.client.company || invoice.client.name}
+          </p>
           {invoice.client.email && <p className="text-gray-600">{invoice.client.email}</p>}
           {invoice.client.phone && <p className="text-gray-600">{invoice.client.phone}</p>}
         </div>
 
-        {/* Project */}
-        {invoice.project && (
+        {/* Project name */}
+        {project && (
           <div className="mb-8 bg-gray-50 rounded-lg px-4 py-3">
             <p className="text-xs text-gray-500 mb-0.5">Project</p>
-            <p className="font-medium text-gray-800">{invoice.project.name}</p>
+            <p className="font-medium text-gray-800">{project.name}</p>
           </div>
         )}
 
@@ -102,27 +117,56 @@ export default async function InvoicePrintPage({
                 <tr key={i} className="border-b border-gray-100">
                   <td className="py-3 text-gray-800">{li.description}</td>
                   <td className="py-3 text-center text-gray-600">{qty}</td>
-                  <td className="py-3 text-right text-gray-600">${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td className="py-3 text-right font-medium">${(qty * price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="py-3 text-right text-gray-600">{fmt(price)}</td>
+                  <td className="py-3 text-right font-medium">{fmt(qty * price)}</td>
                 </tr>
               );
             }) : (
               <tr className="border-b border-gray-100">
                 <td className="py-3 text-gray-800">Services rendered</td>
                 <td className="py-3 text-center text-gray-600">1</td>
-                <td className="py-3 text-right text-gray-600">${invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="py-3 text-right font-medium">${invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="py-3 text-right text-gray-600">{fmt(invoice.amount)}</td>
+                <td className="py-3 text-right font-medium">{fmt(invoice.amount)}</td>
               </tr>
             )}
           </tbody>
         </table>
 
-        {/* Total */}
+        {/* Payment summary */}
         <div className="flex justify-end">
-          <div className="w-64">
+          <div className="w-72 space-y-1">
+            {/* Always show full project price if linked to a project */}
+            {projectTotal !== null && (
+              <div className="flex justify-between text-sm text-gray-500 py-1">
+                <span>Total Project Price</span>
+                <span>{fmt(projectTotal)}</span>
+              </div>
+            )}
+            {/* Deposit invoice: show deposit due now */}
+            {isDepositInvoice && (
+              <div className="flex justify-between text-sm text-gray-500 py-1">
+                <span>Remaining Balance (due later)</span>
+                <span>{fmt(projectTotal! - dueNow)}</span>
+              </div>
+            )}
+            {/* Balance invoice: show what was paid */}
+            {isBalanceInvoice && depositPaid && depositAmount > 0 && (
+              <div className="flex justify-between text-sm text-gray-500 py-1">
+                <span>Deposit Paid</span>
+                <span className="text-green-600">− {fmt(depositAmount)}</span>
+              </div>
+            )}
+            {isBalanceInvoice && !depositPaid && depositAmount > 0 && (
+              <div className="flex justify-between text-sm text-gray-500 py-1">
+                <span>Deposit</span>
+                <span>{fmt(depositAmount)}</span>
+              </div>
+            )}
+
+            {/* Due Now — always prominent */}
             <div className="flex justify-between py-2 border-t-2 border-gray-900 mt-2">
-              <span className="font-bold text-lg">Total</span>
-              <span className="font-bold text-lg">${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="font-bold text-lg">Due Now</span>
+              <span className="font-bold text-lg">{fmt(dueNow)}</span>
             </div>
           </div>
         </div>
