@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, X, Check, Trash2 } from "lucide-react";
+import { Plus, X, Check, Trash2, Printer } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Project = {
@@ -419,6 +419,14 @@ export default function ClientHub({ client }: { client: Client }) {
                         Mark Paid
                       </button>
                     )}
+                    <Link
+                      href={`/business/clients/${client.id}/invoice/${inv.id}`}
+                      target="_blank"
+                      className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors"
+                      title="Print / Download PDF"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </Link>
                   </div>
                 </div>
                 {inv.dueDate && (
