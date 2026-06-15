@@ -8,7 +8,7 @@ const inp = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text
 export default function ClientActions() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company: "", name: "", email: "", phone: "", status: "active" });
+  const [form, setForm] = useState({ company: "", name: "", email: "", phone: "", address: "", status: "active" });
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -17,7 +17,7 @@ export default function ClientActions() {
     await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     setLoading(false);
     setOpen(false);
-    setForm({ company: "", name: "", email: "", phone: "", status: "active" });
+    setForm({ company: "", name: "", email: "", phone: "", address: "", status: "active" });
     router.refresh();
   }
 
@@ -46,6 +46,10 @@ export default function ClientActions() {
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Phone</label>
                 <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Address</label>
+                <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} rows={2} className={inp} placeholder="123 Main St, City, State, ZIP" />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Status</label>

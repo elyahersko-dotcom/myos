@@ -21,7 +21,7 @@ type Invoice = {
 };
 type Client = {
   id: string; name: string; company: string | null; email: string | null;
-  phone: string | null; notes: string | null; status: string;
+  phone: string | null; address: string | null; notes: string | null; status: string;
   tasks: Task[]; invoices: Invoice[]; projects: Project[];
 };
 
@@ -98,6 +98,7 @@ export default function ClientHub({ client }: { client: Client }) {
     name: client.name || "",
     email: client.email || "",
     phone: client.phone || "",
+    address: client.address || "",
     status: client.status,
     notes: client.notes || "",
   });
@@ -570,6 +571,9 @@ export default function ClientHub({ client }: { client: Client }) {
                 <input value={clientData.phone} onChange={e => setClientData({ ...clientData, phone: e.target.value })} className={input} />
               </Field>
             </div>
+            <Field label="Address">
+              <textarea value={clientData.address} onChange={e => setClientData({ ...clientData, address: e.target.value })} rows={2} className={input} placeholder="123 Main St, City, State, ZIP" />
+            </Field>
             <Field label="Status">
               <select value={clientData.status} onChange={e => setClientData({ ...clientData, status: e.target.value })} className={input}>
                 <option value="active">Active</option>

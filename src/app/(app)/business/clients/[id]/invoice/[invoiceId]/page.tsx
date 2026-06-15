@@ -30,16 +30,16 @@ export default async function InvoicePrintPage({
 
   const project = invoice.project as (typeof invoice.project & { totalCost: number; depositAmount: number; depositPaid: boolean }) | null;
 
-  // Work out project-level payment summary
   const projectTotal = project?.totalCost ?? null;
   const depositAmount = project?.depositAmount ?? 0;
   const depositPaid = project?.depositPaid ?? false;
 
-  // Is this a deposit invoice or a balance invoice?
   const isDepositInvoice = projectTotal !== null && Math.abs(dueNow - depositAmount) < 0.01;
   const isBalanceInvoice = projectTotal !== null && !isDepositInvoice;
 
   const biz = settings;
+  const c = invoice.client;
+  const accent = "#4f46e5"; // indigo-600
 
   return (
     <>
@@ -50,149 +50,180 @@ export default async function InvoicePrintPage({
         <PrintButton />
       </div>
 
-      <div className="min-h-screen bg-white p-8 md:p-16 max-w-3xl mx-auto font-sans text-gray-900">
+      <div className="invoice-page min-h-screen bg-gray-100 py-8 px-4 print:bg-white print:p-0">
+        <div className="invoice-sheet mx-auto max-w-3xl bg-white shadow-xl print:shadow-none">
 
-        {/* Header */}
-        <div className="flex justify-between items-start mb-12">
-          <div>
-            {biz?.businessName ? (
-              <>
-                <p className="text-2xl font-bold text-gray-900">{biz.businessName}</p>
-                {biz.businessTagline && <p className="text-gray-500 text-sm mt-0.5">{biz.businessTagline}</p>}
-                {biz.businessEmail && <p className="text-gray-500 text-sm">{biz.businessEmail}</p>}
-                {biz.businessPhone && <p className="text-gray-500 text-sm">{biz.businessPhone}</p>}
-                {biz.businessAddress && <p className="text-gray-500 text-sm whitespace-pre-line">{biz.businessAddress}</p>}
-              </>
-            ) : (
-              <p className="text-xs text-gray-400 italic">Add your business info in Settings</p>
-            )}
-          </div>
-          <div className="text-right">
-            <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
-            {invoice.invoiceNumber && <p className="text-gray-500 mt-1">#{invoice.invoiceNumber}</p>}
-            <p className="text-sm text-gray-500 mt-3">Date</p>
-            <p className="font-medium">{format(new Date(invoice.createdAt), "MMMM d, yyyy")}</p>
-            {invoice.dueDate && (
-              <>
-                <p className="text-sm text-gray-500 mt-2">Due Date</p>
-                <p className="font-medium">{format(new Date(invoice.dueDate), "MMMM d, yyyy")}</p>
-              </>
-            )}
-          </div>
-        </div>
+          {/* Top accent bar */}
+          <div className="h-2 w-full" style={{ backgroundColor: accent }} />
 
-        {/* Bill To — company name only */}
-        <div className="mb-10">
-          <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Bill To</p>
-          <p className="text-lg font-semibold text-gray-900">
-            {invoice.client.company || invoice.client.name}
-          </p>
-          {invoice.client.email && <p className="text-gray-600">{invoice.client.email}</p>}
-          {invoice.client.phone && <p className="text-gray-600">{invoice.client.phone}</p>}
-        </div>
+          <div className="p-10 md:p-14">
 
-        {/* Project name */}
-        {project && (
-          <div className="mb-8 bg-gray-50 rounded-lg px-4 py-3">
-            <p className="text-xs text-gray-500 mb-0.5">Project</p>
-            <p className="font-medium text-gray-800">{project.name}</p>
-          </div>
-        )}
+            {/* Header */}
+            <div className="flex justify-between items-start mb-12">
+              <div>
+                {biz?.businessName ? (
+                  <>
+                    <p className="text-2xl font-bold tracking-tight" style={{ color: accent }}>{biz.businessName}</p>
+                    {biz.businessTagline && <p className="text-gray-500 text-sm mt-1">{biz.businessTagline}</p>}
+                    <div className="mt-3 text-sm text-gray-500 leading-relaxed">
+                      {biz.businessAddress && <p className="whitespace-pre-line">{biz.businessAddress}</p>}
+                      {biz.businessEmail && <p>{biz.businessEmail}</p>}
+                      {biz.businessPhone && <p>{biz.businessPhone}</p>}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Add your business info in Settings</p>
+                )}
+              </div>
+              <div className="text-right">
+                <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">INVOICE</h1>
+                {invoice.invoiceNumber && (
+                  <p className="text-sm font-medium text-gray-400 mt-1">{invoice.invoiceNumber}</p>
+                )}
+                <div className="mt-6 text-sm space-y-1">
+                  <div className="flex justify-end gap-6">
+                    <span className="text-gray-400">Issued</span>
+                    <span className="font-medium text-gray-700 w-32 text-right">{format(new Date(invoice.createdAt), "MMM d, yyyy")}</span>
+                  </div>
+                  {invoice.dueDate && (
+                    <div className="flex justify-end gap-6">
+                      <span className="text-gray-400">Due</span>
+                      <span className="font-medium text-gray-700 w-32 text-right">{format(new Date(invoice.dueDate), "MMM d, yyyy")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-6 pt-1">
+                    <span className="text-gray-400">Status</span>
+                    <span className="w-32 text-right">
+                      <span
+                        className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide"
+                        style={
+                          invoice.status === "paid"
+                            ? { backgroundColor: "#dcfce7", color: "#15803d" }
+                            : invoice.status === "overdue"
+                            ? { backgroundColor: "#fee2e2", color: "#b91c1c" }
+                            : { backgroundColor: "#e0e7ff", color: accent }
+                        }
+                      >
+                        {invoice.status}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* Line items */}
-        <table className="w-full mb-8">
-          <thead>
-            <tr className="border-b-2 border-gray-200">
-              <th className="text-left py-3 text-xs uppercase tracking-widest text-gray-400 font-medium">Description</th>
-              <th className="text-center py-3 text-xs uppercase tracking-widest text-gray-400 font-medium w-20">Qty</th>
-              <th className="text-right py-3 text-xs uppercase tracking-widest text-gray-400 font-medium w-28">Unit Price</th>
-              <th className="text-right py-3 text-xs uppercase tracking-widest text-gray-400 font-medium w-28">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lineItems.length > 0 ? lineItems.map((li, i) => {
-              const qty = parseFloat(li.quantity || "1");
-              const price = parseFloat(li.unitPrice || "0");
-              return (
-                <tr key={i} className="border-b border-gray-100">
-                  <td className="py-3 text-gray-800">{li.description}</td>
-                  <td className="py-3 text-center text-gray-600">{qty}</td>
-                  <td className="py-3 text-right text-gray-600">{fmt(price)}</td>
-                  <td className="py-3 text-right font-medium">{fmt(qty * price)}</td>
+            {/* Bill To */}
+            <div className="flex justify-between gap-8 mb-10">
+              <div>
+                <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: accent }}>Bill To</p>
+                <p className="text-lg font-bold text-gray-900">{c.company || c.name}</p>
+                <div className="mt-1 text-sm text-gray-600 leading-relaxed">
+                  {c.address && <p className="whitespace-pre-line">{c.address}</p>}
+                  {c.email && <p>{c.email}</p>}
+                  {c.phone && <p>{c.phone}</p>}
+                </div>
+              </div>
+              {project && (
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: accent }}>Project</p>
+                  <p className="text-base font-semibold text-gray-800">{project.name}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Line items */}
+            <table className="w-full mb-2">
+              <thead>
+                <tr style={{ backgroundColor: accent }} className="text-white">
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wider font-semibold rounded-l-lg">Description</th>
+                  <th className="text-center py-3 px-2 text-xs uppercase tracking-wider font-semibold w-16">Qty</th>
+                  <th className="text-right py-3 px-2 text-xs uppercase tracking-wider font-semibold w-32">Unit Price</th>
+                  <th className="text-right py-3 px-4 text-xs uppercase tracking-wider font-semibold w-32 rounded-r-lg">Amount</th>
                 </tr>
-              );
-            }) : (
-              <tr className="border-b border-gray-100">
-                <td className="py-3 text-gray-800">Services rendered</td>
-                <td className="py-3 text-center text-gray-600">1</td>
-                <td className="py-3 text-right text-gray-600">{fmt(invoice.amount)}</td>
-                <td className="py-3 text-right font-medium">{fmt(invoice.amount)}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {(lineItems.length > 0 ? lineItems : [{ description: "Services rendered", quantity: "1", unitPrice: String(invoice.amount) }]).map((li, i) => {
+                  const qty = parseFloat(li.quantity || "1");
+                  const price = parseFloat(li.unitPrice || "0");
+                  return (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-4 px-4 text-gray-800 font-medium">{li.description}</td>
+                      <td className="py-4 px-2 text-center text-gray-600">{qty}</td>
+                      <td className="py-4 px-2 text-right text-gray-600">{fmt(price)}</td>
+                      <td className="py-4 px-4 text-right font-semibold text-gray-900">{fmt(qty * price)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-        {/* Payment summary */}
-        <div className="flex justify-end">
-          <div className="w-72 space-y-1">
-            {/* Always show full project price if linked to a project */}
-            {projectTotal !== null && (
-              <div className="flex justify-between text-sm text-gray-500 py-1">
-                <span>Total Project Price</span>
-                <span>{fmt(projectTotal)}</span>
+            {/* Payment summary */}
+            <div className="flex justify-end mt-6">
+              <div className="w-80 space-y-1.5">
+                {projectTotal !== null && (
+                  <div className="flex justify-between text-sm text-gray-500 py-1">
+                    <span>Total Project Price</span>
+                    <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
+                  </div>
+                )}
+                {isDepositInvoice && (
+                  <div className="flex justify-between text-sm text-gray-500 py-1">
+                    <span>Remaining Balance (due later)</span>
+                    <span>{fmt(projectTotal! - dueNow)}</span>
+                  </div>
+                )}
+                {isBalanceInvoice && depositAmount > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500 py-1">
+                    <span>{depositPaid ? "Deposit Paid" : "Deposit"}</span>
+                    <span className={depositPaid ? "text-green-600" : ""}>{depositPaid ? "− " : ""}{fmt(depositAmount)}</span>
+                  </div>
+                )}
+                <div
+                  className="flex justify-between items-center mt-3 px-4 py-3 rounded-lg text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  <span className="font-semibold">Amount Due</span>
+                  <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
+                </div>
               </div>
-            )}
-            {/* Deposit invoice: show deposit due now */}
-            {isDepositInvoice && (
-              <div className="flex justify-between text-sm text-gray-500 py-1">
-                <span>Remaining Balance (due later)</span>
-                <span>{fmt(projectTotal! - dueNow)}</span>
-              </div>
-            )}
-            {/* Balance invoice: show what was paid */}
-            {isBalanceInvoice && depositPaid && depositAmount > 0 && (
-              <div className="flex justify-between text-sm text-gray-500 py-1">
-                <span>Deposit Paid</span>
-                <span className="text-green-600">− {fmt(depositAmount)}</span>
-              </div>
-            )}
-            {isBalanceInvoice && !depositPaid && depositAmount > 0 && (
-              <div className="flex justify-between text-sm text-gray-500 py-1">
-                <span>Deposit</span>
-                <span>{fmt(depositAmount)}</span>
+            </div>
+
+            {/* Paid stamp */}
+            {invoice.status === "paid" && (
+              <div className="mt-6 flex">
+                <span className="border-4 border-green-500 text-green-500 font-extrabold text-2xl px-6 py-2 rounded rotate-[-6deg] opacity-80 uppercase tracking-widest">
+                  Paid
+                </span>
               </div>
             )}
 
-            {/* Due Now — always prominent */}
-            <div className="flex justify-between py-2 border-t-2 border-gray-900 mt-2">
-              <span className="font-bold text-lg">Due Now</span>
-              <span className="font-bold text-lg">{fmt(dueNow)}</span>
+            {/* Notes */}
+            {invoice.notes && (
+              <div className="mt-10 pt-6 border-t border-gray-200">
+                <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: accent }}>Notes</p>
+                <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{invoice.notes}</p>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-14 pt-6 border-t border-gray-200 text-center">
+              <p className="text-sm font-medium text-gray-700">Thank you for your business!</p>
+              {(biz?.businessEmail || biz?.businessPhone) && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Questions? Contact us{biz?.businessEmail ? ` at ${biz.businessEmail}` : ""}{biz?.businessPhone ? ` · ${biz.businessPhone}` : ""}
+                </p>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Paid stamp */}
-        <div className="mt-4 flex justify-end">
-          {invoice.status === "paid" && (
-            <span className="border-4 border-green-500 text-green-500 font-extrabold text-2xl px-6 py-2 rounded rotate-[-8deg] opacity-80 uppercase tracking-widest">
-              Paid
-            </span>
-          )}
-        </div>
-
-        {/* Notes */}
-        {invoice.notes && (
-          <div className="mt-10 pt-6 border-t border-gray-200">
-            <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Notes</p>
-            <p className="text-gray-700 whitespace-pre-wrap text-sm">{invoice.notes}</p>
-          </div>
-        )}
       </div>
 
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body { background: white; }
+          .invoice-page { background: white !important; padding: 0 !important; }
+          .invoice-sheet { box-shadow: none !important; max-width: 100% !important; }
+          @page { margin: 0.5in; }
         }
       `}</style>
     </>

@@ -58,6 +58,7 @@ model Client {
   company   String?
   email     String?
   phone     String?
+  address   String?
   notes     String?
   status    String    @default("active")
   createdAt DateTime  @default(now())
