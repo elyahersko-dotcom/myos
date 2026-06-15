@@ -91,23 +91,6 @@ export default async function InvoicePrintPage({
                       <span className="font-medium text-gray-700 w-32 text-right">{format(new Date(invoice.dueDate), "MMM d, yyyy")}</span>
                     </div>
                   )}
-                  <div className="flex justify-end gap-6 pt-1">
-                    <span className="text-gray-400">Status</span>
-                    <span className="w-32 text-right">
-                      <span
-                        className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide"
-                        style={
-                          invoice.status === "paid"
-                            ? { backgroundColor: "#dcfce7", color: "#15803d" }
-                            : invoice.status === "overdue"
-                            ? { backgroundColor: "#fee2e2", color: "#b91c1c" }
-                            : { backgroundColor: "#e0e7ff", color: accent }
-                        }
-                      >
-                        {invoice.status}
-                      </span>
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
