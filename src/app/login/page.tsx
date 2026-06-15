@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="w-full max-w-sm bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-800">
-        <h1 className="text-2xl font-bold text-white mb-1">MyOS</h1>
+        <div className="mb-2"><Logo width={170} /></div>
         <p className="text-gray-400 mb-6 text-sm">Sign in to your workspace</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

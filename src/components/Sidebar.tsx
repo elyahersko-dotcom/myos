@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
+import Logo from "./Logo";
 import {
   Briefcase, Users, CheckSquare, FileText, TrendingUp,
   User, CreditCard, BarChart2, Calendar, ListTodo,
@@ -68,8 +69,7 @@ export default function Sidebar() {
   const content = (
     <div className="flex flex-col h-full">
       <div className="px-4 py-5 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white">MyOS</h1>
-        <p className="text-xs text-gray-500">Personal Operating System</p>
+        <Logo width={150} />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
         <Section label="Business" icon={Briefcase} links={businessLinks} color="text-indigo-400" />
