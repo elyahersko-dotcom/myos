@@ -39,7 +39,8 @@ export default async function InvoicePrintPage({
 
   const biz = settings;
   const c = invoice.client;
-  const accent = "#4f46e5"; // indigo-600
+  const accent = "#00E5CC";   // DeerCo cyan
+  const ink = "#0a0c12";      // dark text used on top of the cyan accent
 
   return (
     <>
@@ -61,19 +62,25 @@ export default async function InvoicePrintPage({
             {/* Header */}
             <div className="flex justify-between items-start mb-12">
               <div>
-                {biz?.businessName ? (
-                  <>
-                    <p className="text-2xl font-bold tracking-tight" style={{ color: accent }}>{biz.businessName}</p>
-                    {biz.businessTagline && <p className="text-gray-500 text-sm mt-1">{biz.businessTagline}</p>}
-                    <div className="mt-3 text-sm text-gray-500 leading-relaxed">
-                      {biz.businessAddress && <p className="whitespace-pre-line">{biz.businessAddress}</p>}
-                      {biz.businessEmail && <p>{biz.businessEmail}</p>}
-                      {biz.businessPhone && <p>{biz.businessPhone}</p>}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">Add your business info in Settings</p>
-                )}
+                {/* DeerCo Solutions logo (light-background variant) */}
+                <svg width="200" height="70" viewBox="0 0 200 70" xmlns="http://www.w3.org/2000/svg" className="-ml-1">
+                  {/* D mark */}
+                  <rect x="8" y="12" width="4" height="30" rx="1.5" fill="#00E5CC" />
+                  <rect x="8" y="12" width="20" height="4" rx="1.5" fill="#00E5CC" />
+                  <rect x="8" y="38" width="20" height="4" rx="1.5" fill="#00E5CC" />
+                  <rect x="24" y="12" width="4" height="13" rx="1.5" fill="#00E5CC" />
+                  <rect x="24" y="29" width="4" height="13" rx="1.5" fill="#00E5CC" />
+                  {/* DeerCo wordmark */}
+                  <text x="42" y="36" fontSize="22" fontWeight="700" fill="#0a0c12" fontFamily="system-ui,-apple-system,Helvetica,sans-serif" letterSpacing="-0.5">Deer</text>
+                  <text x="96" y="36" fontSize="22" fontWeight="700" fill="#00E5CC" fontFamily="system-ui,-apple-system,Helvetica,sans-serif" letterSpacing="-0.5">Co</text>
+                  {/* SOLUTIONS */}
+                  <text x="43" y="52" fontSize="8" fontWeight="400" fill="#4a5568" fontFamily="system-ui,-apple-system,Helvetica,sans-serif" letterSpacing="4">SOLUTIONS</text>
+                </svg>
+                <div className="mt-2 text-sm text-gray-500 leading-relaxed">
+                  {biz?.businessAddress && <p className="whitespace-pre-line">{biz.businessAddress}</p>}
+                  {biz?.businessEmail && <p>{biz.businessEmail}</p>}
+                  {biz?.businessPhone && <p>{biz.businessPhone}</p>}
+                </div>
               </div>
               <div className="text-right">
                 <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">INVOICE</h1>
@@ -117,7 +124,7 @@ export default async function InvoicePrintPage({
             {/* Line items */}
             <table className="w-full mb-2">
               <thead>
-                <tr style={{ backgroundColor: accent }} className="text-white">
+                <tr style={{ backgroundColor: accent, color: ink }}>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider font-semibold rounded-l-lg">Description</th>
                   <th className="text-center py-3 px-2 text-xs uppercase tracking-wider font-semibold w-16">Qty</th>
                   <th className="text-right py-3 px-2 text-xs uppercase tracking-wider font-semibold w-32">Unit Price</th>
@@ -162,8 +169,8 @@ export default async function InvoicePrintPage({
                   </div>
                 )}
                 <div
-                  className="flex justify-between items-center mt-3 px-4 py-3 rounded-lg text-white"
-                  style={{ backgroundColor: accent }}
+                  className="flex justify-between items-center mt-3 px-4 py-3 rounded-lg"
+                  style={{ backgroundColor: accent, color: ink }}
                 >
                   <span className="font-semibold">Amount Due</span>
                   <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
