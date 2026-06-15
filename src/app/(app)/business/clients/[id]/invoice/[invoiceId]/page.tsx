@@ -220,9 +220,20 @@ export default async function InvoicePrintPage({
 
       <style>{`
         @media print {
+          /* Hide everything (sidebar, nav, buttons)… */
+          body * { visibility: hidden !important; }
+          /* …then show only the invoice sheet */
+          .invoice-sheet, .invoice-sheet * { visibility: visible !important; }
+          .invoice-sheet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+          }
+          .invoice-page { background: white !important; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          .invoice-page { background: white !important; padding: 0 !important; }
-          .invoice-sheet { box-shadow: none !important; max-width: 100% !important; }
           @page { margin: 0.5in; }
         }
       `}</style>
