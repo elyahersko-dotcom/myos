@@ -187,9 +187,25 @@ export default async function InvoicePrintPage({
               </div>
             )}
 
+            {/* Payment instructions */}
+            {invoice.paymentMethod && (
+              <div className="mt-10 pt-6 border-t border-gray-200">
+                <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: accent }}>Payment Instructions</p>
+                <p className="text-sm text-gray-700">
+                  Please send payment via{" "}
+                  <span className="font-semibold">
+                    {invoice.paymentMethod === "zelle" ? "Zelle" : invoice.paymentMethod === "etransfer" ? "e-Transfer" : invoice.paymentMethod}
+                  </span>
+                  {invoice.paymentEmail && (
+                    <> to <span className="font-semibold" style={{ color: accent === "#00E5CC" ? "#0b8578" : accent }}>{invoice.paymentEmail}</span></>
+                  )}.
+                </p>
+              </div>
+            )}
+
             {/* Notes */}
             {invoice.notes && (
-              <div className="mt-10 pt-6 border-t border-gray-200">
+              <div className="mt-8 pt-6 border-t border-gray-200">
                 <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: accent }}>Notes</p>
                 <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{invoice.notes}</p>
               </div>

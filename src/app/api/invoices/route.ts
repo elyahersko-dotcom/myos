@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       lineItems: body.lineItems || [],
       notes: body.notes || null,
+      paymentMethod: body.paymentMethod || null,
+      paymentEmail: body.paymentEmail || null,
     },
   });
   return NextResponse.json(invoice);

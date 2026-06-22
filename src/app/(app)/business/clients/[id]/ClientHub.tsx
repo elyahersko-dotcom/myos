@@ -18,6 +18,7 @@ type Invoice = {
   id: string; amount: number; status: string; dueDate: Date | null;
   invoiceNumber: string | null; notes: string | null; projectId: string | null;
   project: { name: string } | null; lineItems: unknown;
+  paymentMethod: string | null; paymentEmail: string | null;
 };
 type Client = {
   id: string; name: string; company: string | null; email: string | null;
@@ -69,6 +70,7 @@ export default function ClientHub({ client }: { client: Client }) {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [invoiceForm, setInvoiceForm] = useState({
     projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "",
+    paymentMethod: "", paymentEmail: "",
     lineItems: [{ description: "", quantity: "1", unitPrice: "" }],
   });
 
@@ -83,6 +85,8 @@ export default function ClientHub({ client }: { client: Client }) {
       status: inv.status,
       dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split("T")[0] : "",
       notes: inv.notes || "",
+      paymentMethod: inv.paymentMethod || "",
+      paymentEmail: inv.paymentEmail || "",
       lineItems: li,
     });
     setEditingInvoiceId(inv.id);
@@ -167,6 +171,8 @@ export default function ClientHub({ client }: { client: Client }) {
       status: invoiceForm.status,
       dueDate: invoiceForm.dueDate || null,
       notes: invoiceForm.notes || null,
+      paymentMethod: invoiceForm.paymentMethod || null,
+      paymentEmail: invoiceForm.paymentEmail || null,
       lineItems,
     };
     if (editingInvoiceId) {
@@ -190,7 +196,7 @@ export default function ClientHub({ client }: { client: Client }) {
     }
     setShowInvoiceForm(false);
     setEditingInvoiceId(null);
-    setInvoiceForm({ projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }] });
+    setInvoiceForm({ projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "", paymentMethod: "", paymentEmail: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }] });
     setLoading(false);
   }
 
@@ -775,6 +781,23 @@ export default function ClientHub({ client }: { client: Client }) {
             </div>
 
             <Field label="Due Date"><input type="date" value={invoiceForm.dueDate} onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className={input} /></Field>
+
+            {/* Payment method */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Payment Method">
+                <select value={invoiceForm.paymentMethod} onChange={e => setInvoiceForm({ ...invoiceForm, paymentMethod: e.target.value })} className={input}>
+                  <option value="">— None —</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="etransfer">e-Transfer</option>
+                </select>
+              </Field>
+              {invoiceForm.paymentMethod && (
+                <Field label="Send Payment To (email)">
+                  <input type="email" value={invoiceForm.paymentEmail} onChange={e => setInvoiceForm({ ...invoiceForm, paymentEmail: e.target.value })} placeholder="payments@email.com" className={input} />
+                </Field>
+              )}
+            </div>
+
             <Field label="Notes"><textarea value={invoiceForm.notes} onChange={e => setInvoiceForm({ ...invoiceForm, notes: e.target.value })} rows={2} className={input} /></Field>
             <ModalButtons loading={loading} onClose={() => setShowInvoiceForm(false)} />
           </form>

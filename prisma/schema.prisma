@@ -110,6 +110,8 @@ model Invoice {
   dueDate     DateTime?
   lineItems   Json      @default("[]")
   notes       String?
+  paymentMethod String?           // "zelle" | "etransfer" | null
+  paymentEmail  String?           // email for Zelle / e-Transfer
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
