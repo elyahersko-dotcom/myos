@@ -680,8 +680,6 @@ export default function ClientHub({ client }: { client: Client }) {
                   const projectId = e.target.value;
                   const project = projects.find(p => p.id === projectId);
                   if (project) {
-                    const invoiceCount = invoices.filter(i => i.projectId === projectId).length + 1;
-                    const invoiceNum = `INV-${client.name.split(" ")[0].toUpperCase()}-${String(invoiceCount).padStart(3, "0")}`;
                     // Default to deposit invoice if deposit not paid, otherwise full balance
                     const isDeposit = !project.depositPaid && project.depositAmount > 0;
                     const amount = isDeposit ? project.depositAmount : project.totalCost - project.depositAmount;
@@ -691,7 +689,6 @@ export default function ClientHub({ client }: { client: Client }) {
                     setInvoiceForm({
                       ...invoiceForm,
                       projectId,
-                      invoiceNumber: invoiceNum,
                       notes: `Project: ${project.name}`,
                       lineItems: [{ description, quantity: "1", unitPrice: String(amount) }],
                       amount: String(amount),
@@ -736,7 +733,7 @@ export default function ClientHub({ client }: { client: Client }) {
             })()}
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Invoice #"><input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} placeholder="INV-001" className={input} /></Field>
+              <Field label="Invoice #"><input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} placeholder="Auto (e.g. INV-021)" className={input} /></Field>
               <Field label="Status">
                 <select value={invoiceForm.status} onChange={e => setInvoiceForm({ ...invoiceForm, status: e.target.value })} className={input}>
                   {["draft", "sent", "paid", "overdue"].map(s => <option key={s} value={s}>{s}</option>)}
