@@ -744,31 +744,41 @@ export default function ClientHub({ client }: { client: Client }) {
             {/* Line Items */}
             <div>
               <label className="block text-xs text-gray-400 mb-2">Line Items</label>
+              {/* Column headers */}
+              <div className="grid grid-cols-12 gap-2 px-1 mb-1">
+                <span className="col-span-6 text-[10px] uppercase tracking-wider text-gray-600">Description</span>
+                <span className="col-span-2 text-[10px] uppercase tracking-wider text-gray-600">Qty</span>
+                <span className="col-span-3 text-[10px] uppercase tracking-wider text-gray-600">Price</span>
+                <span className="col-span-1" />
+              </div>
               <div className="space-y-2">
                 {invoiceForm.lineItems.map((li, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2">
-                    <input placeholder="Description" value={li.description} onChange={e => {
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <input placeholder="e.g. Logo design" value={li.description} onChange={e => {
                       const updated = [...invoiceForm.lineItems];
                       updated[i] = { ...updated[i], description: e.target.value };
                       setInvoiceForm({ ...invoiceForm, lineItems: updated });
                     }} className={input + " col-span-6"} />
-                    <input placeholder="Qty" type="number" value={li.quantity} onChange={e => {
+                    <input placeholder="1" type="number" value={li.quantity} onChange={e => {
                       const updated = [...invoiceForm.lineItems];
                       updated[i] = { ...updated[i], quantity: e.target.value };
                       setInvoiceForm({ ...invoiceForm, lineItems: updated });
                     }} className={input + " col-span-2"} />
-                    <input placeholder="Price" type="number" step="0.01" value={li.unitPrice} onChange={e => {
+                    <input placeholder="0.00" type="number" step="0.01" value={li.unitPrice} onChange={e => {
                       const updated = [...invoiceForm.lineItems];
                       updated[i] = { ...updated[i], unitPrice: e.target.value };
                       setInvoiceForm({ ...invoiceForm, lineItems: updated });
                     }} className={input + " col-span-3"} />
-                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: invoiceForm.lineItems.filter((_, j) => j !== i) })}
-                      className="col-span-1 text-gray-500 hover:text-red-400"><X size={14} /></button>
+                    <button type="button" title="Remove line"
+                      onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: invoiceForm.lineItems.filter((_, j) => j !== i) })}
+                      className="col-span-1 flex justify-center text-gray-500 hover:text-red-400"><X size={15} /></button>
                   </div>
                 ))}
               </div>
               <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [...invoiceForm.lineItems, { description: "", quantity: "1", unitPrice: "" }] })}
-                className="mt-2 text-xs text-indigo-400 hover:text-indigo-300">+ Add line item</button>
+                className="mt-2 flex items-center gap-1 text-sm font-medium text-indigo-400 hover:text-indigo-300">
+                <Plus size={14} /> Add line item
+              </button>
               <div className="mt-3 flex justify-between items-center border-t border-gray-700 pt-2">
                 <span className="text-xs text-gray-500">Total</span>
                 <span className="text-white font-bold text-lg">
