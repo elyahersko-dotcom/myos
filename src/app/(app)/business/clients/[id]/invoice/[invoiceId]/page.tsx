@@ -5,6 +5,15 @@ import PrintButton from "./PrintButton";
 
 const fmt = (n: number) => "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
+// Sets the page title → becomes the default filename when saving as PDF
+export async function generateMetadata({ params }: { params: { invoiceId: string } }) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: params.invoiceId },
+    select: { invoiceNumber: true },
+  });
+  return { title: { absolute: invoice?.invoiceNumber || "Invoice" } };
+}
+
 export default async function InvoicePrintPage({
   params,
 }: {
