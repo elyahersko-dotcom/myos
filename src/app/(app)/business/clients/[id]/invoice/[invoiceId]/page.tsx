@@ -41,14 +41,22 @@ export default async function InvoicePrintPage({
     ? lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0)
     : invoice.amount;
 
-  const project = invoice.project as (typeof invoice.project & { totalCost: number; depositAmount: number; depositPaid: boolean }) | null;
-
+  const project = invoice.project as (typeof invoice.project & { totalCost: number }) | null;
   const projectTotal = project?.totalCost ?? null;
-  const depositAmount = project?.depositAmount ?? 0;
-  const depositPaid = project?.depositPaid ?? false;
 
-  const isDepositInvoice = projectTotal !== null && Math.abs(dueNow - depositAmount) < 0.01;
-  const isBalanceInvoice = projectTotal !== null && !isDepositInvoice;
+  // Sum every OTHER invoice tied to the same project, so the numbers always add up
+  // regardless of how this invoice's amount compares to the project's deposit field.
+  let previouslyInvoiced = 0;
+  if (project) {
+    const otherInvoices = await prisma.invoice.findMany({
+      where: { projectId: project.id, id: { not: invoice.id } },
+      select: { amount: true },
+    });
+    previouslyInvoiced = otherInvoices.reduce((s, i) => s + i.amount, 0);
+  }
+  const remainingAfterThis = projectTotal !== null
+    ? Math.max(0, projectTotal - previouslyInvoiced - dueNow)
+    : null;
 
   const biz = settings;
   const c = invoice.client;
@@ -160,34 +168,36 @@ export default async function InvoicePrintPage({
               </tbody>
             </table>
 
-            {/* Payment summary */}
+            {/* Payment summary — plain arithmetic, always consistent with the numbers on this invoice */}
             <div className="flex justify-end mt-6">
-              <div className="w-80 space-y-1.5">
+              <div className="w-80">
                 {projectTotal !== null && (
-                  <div className="flex justify-between text-sm text-gray-500 py-1">
-                    <span>Total Project Price</span>
-                    <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
-                  </div>
-                )}
-                {isDepositInvoice && (
-                  <div className="flex justify-between text-sm text-gray-500 py-1">
-                    <span>Remaining Balance (due later)</span>
-                    <span>{fmt(projectTotal! - dueNow)}</span>
-                  </div>
-                )}
-                {isBalanceInvoice && depositAmount > 0 && (
-                  <div className="flex justify-between text-sm text-gray-500 py-1">
-                    <span>{depositPaid ? "Deposit Paid" : "Deposit"}</span>
-                    <span className={depositPaid ? "text-green-600" : ""}>{depositPaid ? "− " : ""}{fmt(depositAmount)}</span>
+                  <div className="space-y-1.5 mb-1.5 pb-2 border-b border-gray-100">
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Total Project Price</span>
+                      <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
+                    </div>
+                    {previouslyInvoiced > 0 && (
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>Previously Invoiced</span>
+                        <span>− {fmt(previouslyInvoiced)}</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div
-                  className="flex justify-between items-center mt-3 px-4 py-3 rounded-lg"
+                  className="flex justify-between items-center px-4 py-3 rounded-lg"
                   style={{ backgroundColor: accent, color: ink }}
                 >
-                  <span className="font-semibold">Amount Due</span>
+                  <span className="font-semibold">This Invoice — Amount Due</span>
                   <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
                 </div>
+                {remainingAfterThis !== null && remainingAfterThis > 0.01 && (
+                  <div className="flex justify-between text-sm text-gray-500 mt-2 px-1">
+                    <span>Remaining After This Invoice</span>
+                    <span className="font-medium text-gray-700">{fmt(remainingAfterThis)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
