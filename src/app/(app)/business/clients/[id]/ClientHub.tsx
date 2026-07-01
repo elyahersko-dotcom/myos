@@ -63,10 +63,26 @@ export default function ClientHub({ client }: { client: Client }) {
   const [taskForm, setTaskForm] = useState({ title: "", description: "", dueDate: "", priority: "medium", status: "todo" });
 
   // Project form
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projectForm, setProjectForm] = useState({
     name: "", description: "", totalCost: "", depositAmount: "", depositPaid: false,
     status: "active", startDate: "", endDate: "",
   });
+
+  function openEditProject(p: Project) {
+    setProjectForm({
+      name: p.name,
+      description: p.description || "",
+      totalCost: String(p.totalCost),
+      depositAmount: String(p.depositAmount),
+      depositPaid: p.depositPaid,
+      status: p.status,
+      startDate: p.startDate ? new Date(p.startDate).toISOString().split("T")[0] : "",
+      endDate: p.endDate ? new Date(p.endDate).toISOString().split("T")[0] : "",
+    });
+    setEditingProjectId(p.id);
+    setShowProjectForm(true);
+  }
 
   // Invoice form
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
@@ -145,19 +161,30 @@ export default function ClientHub({ client }: { client: Client }) {
   async function createProject(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...projectForm,
-        clientId: client.id,
-        totalCost: parseFloat(projectForm.totalCost),
-        depositAmount: parseFloat(projectForm.depositAmount || "0"),
-      }),
-    });
-    const project = await res.json();
-    setProjects([project, ...projects]);
+    const payload = {
+      ...projectForm,
+      totalCost: parseFloat(projectForm.totalCost),
+      depositAmount: parseFloat(projectForm.depositAmount || "0"),
+    };
+    if (editingProjectId) {
+      const res = await fetch(`/api/projects/${editingProjectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const updated = await res.json();
+      setProjects(projects.map(p => p.id === editingProjectId ? updated : p));
+    } else {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, clientId: client.id }),
+      });
+      const project = await res.json();
+      setProjects([project, ...projects]);
+    }
     setShowProjectForm(false);
+    setEditingProjectId(null);
     setProjectForm({ name: "", description: "", totalCost: "", depositAmount: "", depositPaid: false, status: "active", startDate: "", endDate: "" });
     setLoading(false);
   }
@@ -285,7 +312,7 @@ export default function ClientHub({ client }: { client: Client }) {
             className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg px-3 py-2 text-sm transition-colors">
             <Pencil size={15} /> Edit
           </button>
-          <button onClick={() => { setShowProjectForm(true); setActiveTab("projects"); }}
+          <button onClick={() => { setEditingProjectId(null); setShowProjectForm(true); setActiveTab("projects"); }}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
             <Plus size={15} /> Project
           </button>
@@ -362,7 +389,7 @@ export default function ClientHub({ client }: { client: Client }) {
                   </div>
                 </div>
               ))}
-              {projects.length === 0 && <p className="text-gray-600 text-sm">No projects yet. <button onClick={() => setShowProjectForm(true)} className="text-indigo-400 hover:text-indigo-300">Create one</button></p>}
+              {projects.length === 0 && <p className="text-gray-600 text-sm">No projects yet. <button onClick={() => { setEditingProjectId(null); setShowProjectForm(true); }} className="text-indigo-400 hover:text-indigo-300">Create one</button></p>}
             </div>
           </div>
 
@@ -394,7 +421,7 @@ export default function ClientHub({ client }: { client: Client }) {
       {activeTab === "projects" && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setShowProjectForm(true)}
+            <button onClick={() => { setEditingProjectId(null); setProjectForm({ name: "", description: "", totalCost: "", depositAmount: "", depositPaid: false, status: "active", startDate: "", endDate: "" }); setShowProjectForm(true); }}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
               <Plus size={15} /> New Project
             </button>
@@ -408,6 +435,10 @@ export default function ClientHub({ client }: { client: Client }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[p.status]}`}>{p.status}</span>
+                  <button onClick={() => openEditProject(p)} title="Edit project"
+                    className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors">
+                    <Pencil size={14} />
+                  </button>
                   <button onClick={() => { if (window.confirm(`Delete project "${p.name}"?`)) deleteProject(p.id); }} title="Delete"
                     className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
                     <Trash2 size={14} />
@@ -642,7 +673,7 @@ export default function ClientHub({ client }: { client: Client }) {
 
       {/* Project Modal */}
       {showProjectForm && (
-        <Modal title="New Project" onClose={() => setShowProjectForm(false)}>
+        <Modal title={editingProjectId ? "Edit Project" : "New Project"} onClose={() => { setShowProjectForm(false); setEditingProjectId(null); }}>
           <form onSubmit={createProject} className="space-y-3">
             <Field label="Project Name *"><input value={projectForm.name} onChange={e => setProjectForm({ ...projectForm, name: e.target.value })} required className={input} /></Field>
             <Field label="Description"><textarea value={projectForm.description} onChange={e => setProjectForm({ ...projectForm, description: e.target.value })} rows={2} className={input} /></Field>
@@ -669,7 +700,7 @@ export default function ClientHub({ client }: { client: Client }) {
               <input type="checkbox" id="depositPaid" checked={projectForm.depositPaid} onChange={e => setProjectForm({ ...projectForm, depositPaid: e.target.checked })} className="rounded" />
               <label htmlFor="depositPaid" className="text-sm text-gray-400">Deposit already paid</label>
             </div>
-            <ModalButtons loading={loading} onClose={() => setShowProjectForm(false)} />
+            <ModalButtons loading={loading} onClose={() => { setShowProjectForm(false); setEditingProjectId(null); }} />
           </form>
         </Modal>
       )}
