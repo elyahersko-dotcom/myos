@@ -109,6 +109,7 @@ model Invoice {
   status      String    @default("draft")
   dueDate     DateTime?
   lineItems   Json      @default("[]")
+  paymentSchedule Json  @default("[]")   // [{ label, amount, dueDate }]
   notes       String?
   paymentMethod String?           // "zelle" | "etransfer" | null
   paymentEmail  String?           // email for Zelle / e-Transfer

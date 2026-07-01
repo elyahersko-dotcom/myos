@@ -33,6 +33,10 @@ export default async function InvoicePrintPage({
     ? (invoice.lineItems as { description: string; quantity: string; unitPrice: string }[])
     : [];
 
+  const schedule = Array.isArray(invoice.paymentSchedule)
+    ? (invoice.paymentSchedule as { label: string; amount: string; dueDate: string }[]).filter(s => s.label || s.amount)
+    : [];
+
   const dueNow = lineItems.length > 0
     ? lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0)
     : invoice.amount;
@@ -186,6 +190,33 @@ export default async function InvoicePrintPage({
                 </div>
               </div>
             </div>
+
+            {/* Payment Schedule */}
+            {schedule.length > 0 && (
+              <div className="mt-10">
+                <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: accent }}>Payment Schedule</p>
+                <table className="w-full">
+                  <tbody>
+                    {schedule.map((s, i) => (
+                      <tr key={i} className="border-b border-gray-100">
+                        <td className="py-2.5 text-gray-800 font-medium">{s.label || "Installment"}</td>
+                        <td className="py-2.5 text-gray-500 text-sm text-center">
+                          {s.dueDate ? format(new Date(s.dueDate), "MMM d, yyyy") : ""}
+                        </td>
+                        <td className="py-2.5 text-right font-semibold text-gray-900 w-32">{fmt(parseFloat(s.amount || "0"))}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="py-2.5 font-bold text-gray-900">Total</td>
+                      <td />
+                      <td className="py-2.5 text-right font-bold text-gray-900">
+                        {fmt(schedule.reduce((sum, s) => sum + parseFloat(s.amount || "0"), 0))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Paid stamp */}
             {invoice.status === "paid" && (

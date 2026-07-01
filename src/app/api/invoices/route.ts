@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       status: body.status || "draft",
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       lineItems: body.lineItems || [],
+      paymentSchedule: body.paymentSchedule || [],
       notes: body.notes || null,
       paymentMethod: body.paymentMethod || null,
       paymentEmail: body.paymentEmail || null,

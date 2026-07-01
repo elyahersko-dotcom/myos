@@ -14,10 +14,12 @@ type Task = {
   id: string; title: string; description: string | null; dueDate: Date | null;
   priority: string; status: string;
 };
+type ScheduleItem = { label: string; amount: string; dueDate: string };
 type Invoice = {
   id: string; amount: number; status: string; dueDate: Date | null;
   invoiceNumber: string | null; notes: string | null; projectId: string | null;
   project: { name: string } | null; lineItems: unknown;
+  paymentSchedule: unknown;
   paymentMethod: string | null; paymentEmail: string | null;
 };
 type Client = {
@@ -72,6 +74,7 @@ export default function ClientHub({ client }: { client: Client }) {
     projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "",
     paymentMethod: "", paymentEmail: "",
     lineItems: [{ description: "", quantity: "1", unitPrice: "" }],
+    paymentSchedule: [] as ScheduleItem[],
   });
 
   function openEditInvoice(inv: Invoice) {
@@ -88,6 +91,7 @@ export default function ClientHub({ client }: { client: Client }) {
       paymentMethod: inv.paymentMethod || "",
       paymentEmail: inv.paymentEmail || "",
       lineItems: li,
+      paymentSchedule: Array.isArray(inv.paymentSchedule) ? (inv.paymentSchedule as ScheduleItem[]) : [],
     });
     setEditingInvoiceId(inv.id);
     setShowInvoiceForm(true);
@@ -174,6 +178,7 @@ export default function ClientHub({ client }: { client: Client }) {
       paymentMethod: invoiceForm.paymentMethod || null,
       paymentEmail: invoiceForm.paymentEmail || null,
       lineItems,
+      paymentSchedule: invoiceForm.paymentSchedule.filter(s => s.label || s.amount),
     };
     if (editingInvoiceId) {
       const res = await fetch(`/api/invoices/${editingInvoiceId}`, {
@@ -196,7 +201,7 @@ export default function ClientHub({ client }: { client: Client }) {
     }
     setShowInvoiceForm(false);
     setEditingInvoiceId(null);
-    setInvoiceForm({ projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "", paymentMethod: "", paymentEmail: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }] });
+    setInvoiceForm({ projectId: "", invoiceNumber: "", amount: "", status: "draft", dueDate: "", notes: "", paymentMethod: "", paymentEmail: "", lineItems: [{ description: "", quantity: "1", unitPrice: "" }], paymentSchedule: [] });
     setLoading(false);
   }
 
@@ -785,6 +790,48 @@ export default function ClientHub({ client }: { client: Client }) {
                   ${invoiceForm.lineItems.reduce((s, li) => s + (parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1")), 0).toLocaleString()}
                 </span>
               </div>
+            </div>
+
+            {/* Payment Schedule */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Payment Schedule <span className="text-gray-600">(optional — split into installments)</span></label>
+              {invoiceForm.paymentSchedule.length > 0 && (
+                <div className="grid grid-cols-12 gap-2 px-1 mb-1">
+                  <span className="col-span-5 text-[10px] uppercase tracking-wider text-gray-600">When Due</span>
+                  <span className="col-span-3 text-[10px] uppercase tracking-wider text-gray-600">Amount</span>
+                  <span className="col-span-3 text-[10px] uppercase tracking-wider text-gray-600">Date (optional)</span>
+                  <span className="col-span-1" />
+                </div>
+              )}
+              <div className="space-y-2">
+                {invoiceForm.paymentSchedule.map((s, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <input placeholder="e.g. Due now / On completion" value={s.label} onChange={e => {
+                      const u = [...invoiceForm.paymentSchedule]; u[i] = { ...u[i], label: e.target.value };
+                      setInvoiceForm({ ...invoiceForm, paymentSchedule: u });
+                    }} className={input + " col-span-5"} />
+                    <input placeholder="1000" type="number" step="0.01" value={s.amount} onChange={e => {
+                      const u = [...invoiceForm.paymentSchedule]; u[i] = { ...u[i], amount: e.target.value };
+                      setInvoiceForm({ ...invoiceForm, paymentSchedule: u });
+                    }} className={input + " col-span-3"} />
+                    <input type="date" value={s.dueDate} onChange={e => {
+                      const u = [...invoiceForm.paymentSchedule]; u[i] = { ...u[i], dueDate: e.target.value };
+                      setInvoiceForm({ ...invoiceForm, paymentSchedule: u });
+                    }} className={input + " col-span-3"} />
+                    <button type="button" title="Remove" onClick={() => setInvoiceForm({ ...invoiceForm, paymentSchedule: invoiceForm.paymentSchedule.filter((_, j) => j !== i) })}
+                      className="col-span-1 flex justify-center text-gray-500 hover:text-red-400"><X size={15} /></button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, paymentSchedule: [...invoiceForm.paymentSchedule, { label: "", amount: "", dueDate: "" }] })}
+                className="mt-2 flex items-center gap-1 text-sm font-medium text-indigo-400 hover:text-indigo-300">
+                <Plus size={14} /> Add installment
+              </button>
+              {invoiceForm.paymentSchedule.length > 0 && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Scheduled total: ${invoiceForm.paymentSchedule.reduce((s, p) => s + parseFloat(p.amount || "0"), 0).toLocaleString()}
+                </p>
+              )}
             </div>
 
             <Field label="Due Date"><input type="date" value={invoiceForm.dueDate} onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className={input} /></Field>
