@@ -285,12 +285,12 @@ export default async function InvoicePrintPage({
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
+            max-width: none !important;
             box-shadow: none !important;
           }
-          .invoice-page { background: white !important; padding: 0 !important; margin: 0 !important; }
+          .invoice-page { background: white !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
           .no-print { display: none !important; }
-          @page { margin: 0.5in; }
+          @page { size: letter; margin: 0.6in; }
         }
       `}</style>
     </>
