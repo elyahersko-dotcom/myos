@@ -172,6 +172,11 @@ export default function ClientHub({ client }: { client: Client }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        alert("Failed to save project. Please try again.");
+        setLoading(false);
+        return;
+      }
       const updated = await res.json();
       setProjects(projects.map(p => p.id === editingProjectId ? updated : p));
     } else {

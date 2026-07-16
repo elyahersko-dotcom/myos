@@ -7,8 +7,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
-  if (body.startDate) body.startDate = new Date(body.startDate);
-  if (body.endDate) body.endDate = new Date(body.endDate);
+  if ("startDate" in body) body.startDate = body.startDate ? new Date(body.startDate) : null;
+  if ("endDate" in body) body.endDate = body.endDate ? new Date(body.endDate) : null;
+  if ("totalCost" in body) body.totalCost = parseFloat(body.totalCost);
+  if ("depositAmount" in body) body.depositAmount = parseFloat(body.depositAmount || "0");
   const project = await prisma.project.update({ where: { id: params.id }, data: body });
   return NextResponse.json(project);
 }
