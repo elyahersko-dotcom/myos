@@ -33,30 +33,19 @@ export default async function InvoicePrintPage({
     ? (invoice.lineItems as { description: string; quantity: string; unitPrice: string }[])
     : [];
 
-  const schedule = Array.isArray(invoice.paymentSchedule)
-    ? (invoice.paymentSchedule as { label: string; amount: string; dueDate: string }[]).filter(s => s.label || s.amount)
-    : [];
-
   const dueNow = lineItems.length > 0
     ? lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0)
     : invoice.amount;
 
-  const project = invoice.project as (typeof invoice.project & { totalCost: number }) | null;
+  const project = invoice.project as (typeof invoice.project & { totalCost: number; depositAmount: number; endDate: Date | null }) | null;
   const projectTotal = project?.totalCost ?? null;
-
-  // Sum every OTHER invoice tied to the same project, so the numbers always add up
-  // regardless of how this invoice's amount compares to the project's deposit field.
-  let previouslyInvoiced = 0;
-  if (project) {
-    const otherInvoices = await prisma.invoice.findMany({
-      where: { projectId: project.id, id: { not: invoice.id } },
-      select: { amount: true },
-    });
-    previouslyInvoiced = otherInvoices.reduce((s, i) => s + i.amount, 0);
-  }
-  const remainingAfterThis = projectTotal !== null
-    ? Math.max(0, projectTotal - previouslyInvoiced - dueNow)
+  const depositAmount = project?.depositAmount ?? null;
+  const balanceDue = projectTotal !== null && depositAmount !== null
+    ? Math.max(0, projectTotal - depositAmount)
     : null;
+  const balanceDueWhen = project?.endDate
+    ? format(new Date(project.endDate), "MMM d, yyyy")
+    : "Upon completion";
 
   const biz = settings;
   const c = invoice.client;
@@ -168,65 +157,40 @@ export default async function InvoicePrintPage({
               </tbody>
             </table>
 
-            {/* Payment summary — plain arithmetic, always consistent with the numbers on this invoice */}
+            {/* Payment summary — just the three things that matter: total, deposit, and when the rest is due */}
             <div className="flex justify-end mt-6">
               <div className="w-80">
-                {projectTotal !== null && (
-                  <div className="space-y-1.5 mb-1.5 pb-2 border-b border-gray-100">
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>Total Project Price</span>
-                      <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
-                    </div>
-                    {previouslyInvoiced > 0 && (
+                {projectTotal !== null ? (
+                  <>
+                    <div className="space-y-1.5 mb-2">
                       <div className="flex justify-between text-sm text-gray-500">
-                        <span>Previously Invoiced</span>
-                        <span>− {fmt(previouslyInvoiced)}</span>
+                        <span>Total Project Price</span>
+                        <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
                       </div>
-                    )}
-                  </div>
-                )}
-                <div
-                  className="flex justify-between items-center px-4 py-3 rounded-lg"
-                  style={{ backgroundColor: accent, color: ink }}
-                >
-                  <span className="font-semibold">This Invoice — Amount Due</span>
-                  <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
-                </div>
-                {remainingAfterThis !== null && remainingAfterThis > 0.01 && (
-                  <div className="flex justify-between text-sm text-gray-500 mt-2 px-1">
-                    <span>Remaining After This Invoice</span>
-                    <span className="font-medium text-gray-700">{fmt(remainingAfterThis)}</span>
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>Deposit</span>
+                        <span className="font-medium text-gray-700">{fmt(depositAmount ?? 0)}</span>
+                      </div>
+                    </div>
+                    <div
+                      className="flex justify-between items-center px-4 py-3 rounded-lg"
+                      style={{ backgroundColor: accent, color: ink }}
+                    >
+                      <span className="font-semibold">Balance Due <span className="font-normal">({balanceDueWhen})</span></span>
+                      <span className="font-extrabold text-xl">{fmt(balanceDue ?? 0)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    className="flex justify-between items-center px-4 py-3 rounded-lg"
+                    style={{ backgroundColor: accent, color: ink }}
+                  >
+                    <span className="font-semibold">Amount Due</span>
+                    <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Payment Schedule */}
-            {schedule.length > 0 && (
-              <div className="mt-10">
-                <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: accent }}>Payment Schedule</p>
-                <table className="w-full">
-                  <tbody>
-                    {schedule.map((s, i) => (
-                      <tr key={i} className="border-b border-gray-100">
-                        <td className="py-2.5 text-gray-800 font-medium">{s.label || "Installment"}</td>
-                        <td className="py-2.5 text-gray-500 text-sm text-center">
-                          {s.dueDate ? format(new Date(s.dueDate), "MMM d, yyyy") : ""}
-                        </td>
-                        <td className="py-2.5 text-right font-semibold text-gray-900 w-32">{fmt(parseFloat(s.amount || "0"))}</td>
-                      </tr>
-                    ))}
-                    <tr>
-                      <td className="py-2.5 font-bold text-gray-900">Total</td>
-                      <td />
-                      <td className="py-2.5 text-right font-bold text-gray-900">
-                        {fmt(schedule.reduce((sum, s) => sum + parseFloat(s.amount || "0"), 0))}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
 
             {/* Paid stamp */}
             {invoice.status === "paid" && (
