@@ -40,8 +40,19 @@ export default async function InvoicePrintPage({
   const project = invoice.project as (typeof invoice.project & { totalCost: number; depositAmount: number; endDate: Date | null }) | null;
   const projectTotal = project?.totalCost ?? null;
   const depositAmount = project?.depositAmount ?? null;
-  const balanceDue = projectTotal !== null && depositAmount !== null
-    ? Math.max(0, projectTotal - depositAmount)
+
+  // Sum every OTHER invoice tied to the same project, so "balance due" always
+  // reflects what's actually left after this invoice, regardless of amount.
+  let previouslyInvoiced = 0;
+  if (project) {
+    const otherInvoices = await prisma.invoice.findMany({
+      where: { projectId: project.id, id: { not: invoice.id } },
+      select: { amount: true },
+    });
+    previouslyInvoiced = otherInvoices.reduce((s, i) => s + i.amount, 0);
+  }
+  const balanceDue = projectTotal !== null
+    ? Math.max(0, projectTotal - previouslyInvoiced - dueNow)
     : null;
   const balanceDueWhen = project?.endDate
     ? format(new Date(project.endDate), "MMM d, yyyy")
@@ -157,36 +168,32 @@ export default async function InvoicePrintPage({
               </tbody>
             </table>
 
-            {/* Payment summary — just the three things that matter: total, deposit, and when the rest is due */}
+            {/* Payment summary — amount due now is highlighted; balance is a plain line below */}
             <div className="flex justify-end mt-6">
               <div className="w-80">
-                {projectTotal !== null ? (
-                  <>
-                    <div className="space-y-1.5 mb-2">
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Total Project Price</span>
-                        <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Deposit</span>
-                        <span className="font-medium text-gray-700">{fmt(depositAmount ?? 0)}</span>
-                      </div>
+                {projectTotal !== null && (
+                  <div className="space-y-1.5 mb-2">
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Total Project Price</span>
+                      <span className="font-medium text-gray-700">{fmt(projectTotal)}</span>
                     </div>
-                    <div
-                      className="flex justify-between items-center px-4 py-3 rounded-lg"
-                      style={{ backgroundColor: accent, color: ink }}
-                    >
-                      <span className="font-semibold">Balance Due <span className="font-normal">({balanceDueWhen})</span></span>
-                      <span className="font-extrabold text-xl">{fmt(balanceDue ?? 0)}</span>
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Deposit</span>
+                      <span className="font-medium text-gray-700">{fmt(depositAmount ?? 0)}</span>
                     </div>
-                  </>
-                ) : (
-                  <div
-                    className="flex justify-between items-center px-4 py-3 rounded-lg"
-                    style={{ backgroundColor: accent, color: ink }}
-                  >
-                    <span className="font-semibold">Amount Due</span>
-                    <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
+                  </div>
+                )}
+                <div
+                  className="flex justify-between items-center px-4 py-3 rounded-lg"
+                  style={{ backgroundColor: accent, color: ink }}
+                >
+                  <span className="font-semibold">Amount Due Now</span>
+                  <span className="font-extrabold text-xl">{fmt(dueNow)}</span>
+                </div>
+                {balanceDue !== null && balanceDue > 0.01 && (
+                  <div className="flex justify-between text-sm text-gray-500 mt-2 px-1">
+                    <span>Balance Due ({balanceDueWhen})</span>
+                    <span className="font-medium text-gray-700">{fmt(balanceDue)}</span>
                   </div>
                 )}
               </div>
