@@ -15,7 +15,6 @@ type ProjectInfo = { name: string; totalCost: number; depositAmount: number; end
 type BizInfo = { businessName: string | null; businessTagline: string | null; businessEmail: string | null; businessPhone: string | null; businessAddress: string | null };
 
 const fmt = (n: number) => "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2 });
-const fmtC = (n: number, currency: string) => (currency === "USD" ? "US$" : "$") + n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 const accent = "#00E5CC";
 const inputCls = "w-full bg-gray-50 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-[#00b3a0]";
 
@@ -197,7 +196,7 @@ export default function InvoiceView({
                             const u = [...form.lineItems]; u[i] = { ...u[i], unitPrice: String(amt / (qty || 1)) };
                             setForm({ ...form, lineItems: u });
                           }} className={inputCls + " text-right"} />
-                        ) : fmtC(qty * price, saved.currency)}
+                        ) : fmt(qty * price)}
                       </td>
                       {editing && (
                         <td className="text-center">
@@ -224,30 +223,21 @@ export default function InvoiceView({
                   <>
                     <div className="flex justify-between text-sm text-gray-500">
                       <span>Total Project Price</span>
-                      <span>{fmtC(project.totalCost, saved.currency)}</span>
+                      <span>{fmt(project.totalCost)}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-500">
                       <span>Deposit</span>
-                      <span>{fmtC(project.depositAmount, saved.currency)}</span>
+                      <span>{fmt(project.depositAmount)}</span>
                     </div>
                   </>
                 )}
                 <div className="flex justify-between items-center bg-gray-50 rounded px-3 py-2 mt-1 border-t border-gray-100 pt-2">
                   <span className="font-bold text-gray-900">Balance Due</span>
-                  <span className="font-bold text-gray-900">
-                    {fmtC(saved.status === "paid" && !editing ? 0 : displayDueNow, saved.currency)}
-                    {saved.currency !== "CAD" && <span className="font-normal text-xs text-gray-500 ml-1">{saved.currency}</span>}
-                  </span>
+                  <span className="font-bold text-gray-900">{fmt(saved.status === "paid" && !editing ? 0 : displayDueNow)}</span>
                 </div>
-                {!editing && saved.status === "paid" && saved.currency === "USD" && saved.cadAmount != null && (
-                  <p className="text-xs text-emerald-600 text-right">
-                    ≈ {fmt(saved.cadAmount)} CAD{saved.paidAt ? ` — paid ${format(new Date(saved.paidAt), "MMM d, yyyy")}` : ""}
-                    {saved.exchangeRate ? ` (rate ${saved.exchangeRate.toFixed(4)})` : ""}
-                  </p>
-                )}
                 {project && balanceDue !== null && balanceDue > 0.01 && (
                   <p className="text-xs text-gray-400 pt-1">
-                    Remaining project balance due {balanceDueWhen}: {fmtC(balanceDue, saved.currency)}
+                    Remaining project balance due {balanceDueWhen}: {fmt(balanceDue)}
                   </p>
                 )}
               </div>
