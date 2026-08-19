@@ -304,6 +304,7 @@ export default function InvoiceView({
 
       <style>{`
         @media print {
+          html, body { background: #ffffff !important; height: auto !important; }
           body * { visibility: hidden !important; }
           .invoice-sheet, .invoice-sheet * { visibility: visible !important; }
           .invoice-sheet {
@@ -312,9 +313,10 @@ export default function InvoiceView({
             top: 0 !important;
             width: 100% !important;
             max-width: none !important;
+            min-height: 0 !important;
             box-shadow: none !important;
           }
-          .invoice-page { background: white !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
+          .invoice-page { background: #ffffff !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; height: auto !important; }
           .no-print { display: none !important; }
           @page { size: letter; margin: 0.6in; }
         }
