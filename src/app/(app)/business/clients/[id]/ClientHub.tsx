@@ -269,11 +269,6 @@ export default function ClientHub({ client }: { client: Client }) {
     setProjects(projects.filter(p => p.id !== id));
   }
 
-  async function toggleDepositPaid(projectId: string, current: boolean) {
-    await fetch(`/api/projects/${projectId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ depositPaid: !current }) });
-    setProjects(projects.map(p => p.id === projectId ? { ...p, depositPaid: !current } : p));
-  }
-
   const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
   const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
   // Per-project: how much has been invoiced so far
@@ -376,7 +371,10 @@ export default function ClientHub({ client }: { client: Client }) {
               <button onClick={() => setActiveTab("projects")} className="text-xs text-gray-500 hover:text-white">View all</button>
             </div>
             <div className="space-y-3">
-              {projects.slice(0, 3).map(p => (
+              {projects.slice(0, 3).map(p => {
+                const paidForP = invoices.filter(i => i.projectId === p.id && i.status === "paid").reduce((s, i) => s + i.amount, 0);
+                const balanceForP = Math.max(0, p.totalCost - paidForP);
+                return (
                 <div key={p.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-white">{p.name}</h4>
@@ -384,16 +382,16 @@ export default function ClientHub({ client }: { client: Client }) {
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div><p className="text-xs text-gray-500">Total Cost</p><p className="text-white font-medium">${p.totalCost.toLocaleString()}</p></div>
-                    <div><p className="text-xs text-gray-500">Deposit</p><p className="text-white font-medium">${p.depositAmount.toLocaleString()}</p></div>
-                    <div><p className="text-xs text-gray-500">Deposit Paid</p>
-                      <button onClick={() => toggleDepositPaid(p.id, p.depositPaid)}
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${p.depositPaid ? "bg-green-500/20 text-green-400" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
-                        {p.depositPaid ? "✓ Paid" : "Unpaid"}
-                      </button>
+                    <div><p className="text-xs text-gray-500">Paid So Far</p><p className="text-green-400 font-medium">${paidForP.toLocaleString()}</p></div>
+                    <div><p className="text-xs text-gray-500">Balance Due</p>
+                      <p className={`font-medium ${balanceForP > 0 ? "text-orange-400" : "text-green-400"}`}>
+                        {balanceForP > 0 ? `$${balanceForP.toLocaleString()}` : "✓ Paid in Full"}
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {projects.length === 0 && <p className="text-gray-600 text-sm">No projects yet. <button onClick={() => { setEditingProjectId(null); setShowProjectForm(true); }} className="text-indigo-400 hover:text-indigo-300">Create one</button></p>}
             </div>
           </div>
@@ -457,7 +455,7 @@ export default function ClientHub({ client }: { client: Client }) {
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="bg-gray-800 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Project Cost</p>
                   <p className="text-white font-bold text-lg">${p.totalCost.toLocaleString()}</p>
@@ -471,13 +469,6 @@ export default function ClientHub({ client }: { client: Client }) {
                   <p className={`font-bold text-lg ${realBalanceDue > 0 ? "text-orange-400" : "text-green-400"}`}>
                     {realBalanceDue > 0 ? `$${realBalanceDue.toLocaleString()}` : "✓ Paid in Full"}
                   </p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Deposit Status</p>
-                  <button onClick={() => toggleDepositPaid(p.id, p.depositPaid)}
-                    className={`mt-1 text-xs font-medium px-3 py-1 rounded-full transition-colors ${p.depositPaid ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
-                    {p.depositPaid ? "✓ Deposit Paid" : "Mark Deposit Paid"}
-                  </button>
                 </div>
               </div>
               <div className="flex gap-3 text-xs text-gray-500">
