@@ -61,6 +61,7 @@ model Client {
   address   String?
   notes     String?
   status    String    @default("active")
+  currency  String    @default("CAD")   // "CAD" | "USD"
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   tasks     Task[]
@@ -113,6 +114,10 @@ model Invoice {
   notes       String?
   paymentMethod String?           // "zelle" | "etransfer" | null
   paymentEmail  String?           // email for Zelle / e-Transfer
+  currency    String    @default("CAD")   // snapshot of the client's currency at creation
+  paidAt      DateTime?                   // set the first time the invoice is marked paid
+  exchangeRate Float?                     // USD→CAD rate used on the day it was paid
+  cadAmount   Float?                      // CAD-equivalent amount as of paidAt
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

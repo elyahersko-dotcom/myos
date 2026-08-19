@@ -8,7 +8,7 @@ const inp = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text
 export default function ClientActions() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company: "", name: "", email: "", phone: "", address: "", status: "active" });
+  const [form, setForm] = useState({ company: "", name: "", email: "", phone: "", address: "", status: "active", currency: "CAD" });
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -17,7 +17,7 @@ export default function ClientActions() {
     await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     setLoading(false);
     setOpen(false);
-    setForm({ company: "", name: "", email: "", phone: "", address: "", status: "active" });
+    setForm({ company: "", name: "", email: "", phone: "", address: "", status: "active", currency: "CAD" });
     router.refresh();
   }
 
@@ -51,14 +51,23 @@ export default function ClientActions() {
                 <label className="block text-xs text-gray-400 mb-1">Address</label>
                 <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} rows={2} className={inp} placeholder="123 Main St, City, State, ZIP" />
               </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Status</label>
-                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inp}>
-                  <option value="active">Active</option>
-                  <option value="lead">Lead</option>
-                  <option value="completed">Completed</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Status</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inp}>
+                    <option value="active">Active</option>
+                    <option value="lead">Lead</option>
+                    <option value="completed">Completed</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Currency</label>
+                  <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className={inp}>
+                    <option value="CAD">CAD</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setOpen(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-2 text-sm transition-colors">Cancel</button>

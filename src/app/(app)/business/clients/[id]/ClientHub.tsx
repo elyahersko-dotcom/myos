@@ -21,12 +21,16 @@ type Invoice = {
   project: { name: string } | null; lineItems: unknown;
   paymentSchedule: unknown;
   paymentMethod: string | null; paymentEmail: string | null;
+  currency: string; paidAt: Date | null; exchangeRate: number | null; cadAmount: number | null;
 };
 type Client = {
   id: string; name: string; company: string | null; email: string | null;
   phone: string | null; address: string | null; notes: string | null; status: string;
+  currency: string;
   tasks: Task[]; invoices: Invoice[]; projects: Project[];
 };
+
+const currencySymbol = (c: string) => (c === "USD" ? "US$" : "$");
 
 const priorityColor: Record<string, string> = {
   low: "text-gray-400", medium: "text-blue-400", high: "text-orange-400", urgent: "text-red-400",
@@ -145,6 +149,7 @@ export default function ClientHub({ client }: { client: Client }) {
     phone: client.phone || "",
     address: client.address || "",
     status: client.status,
+    currency: client.currency || "CAD",
     notes: client.notes || "",
   });
   const [editLoading, setEditLoading] = useState(false);
@@ -271,8 +276,10 @@ export default function ClientHub({ client }: { client: Client }) {
   }
 
   async function markInvoicePaid(id: string) {
-    await fetch(`/api/invoices/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
-    setInvoices(invoices.map(i => i.id === id ? { ...i, status: "paid" } : i));
+    const res = await fetch(`/api/invoices/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) });
+    const updated = await res.json();
+    // Server computes paidAt + CAD conversion (for USD invoices) — reflect that immediately.
+    setInvoices(invoices.map(i => i.id === id ? { ...i, ...updated } : i));
   }
 
   async function deleteInvoice(id: string) {
@@ -322,6 +329,7 @@ export default function ClientHub({ client }: { client: Client }) {
             {displayClient.email && <span>{displayClient.email}</span>}
             {displayClient.phone && <span>{displayClient.phone}</span>}
             <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[displayClient.status] || statusBadge.active}`}>{displayClient.status}</span>
+            <span className="px-2 py-0.5 rounded-full text-xs bg-gray-700 text-gray-300 font-medium">{displayClient.currency || "CAD"}</span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -510,7 +518,7 @@ export default function ClientHub({ client }: { client: Client }) {
                         className="w-full flex items-center justify-between text-sm hover:bg-gray-800/60 rounded px-1.5 py-1 -mx-1.5 transition-colors">
                         <span className="text-gray-400">{inv.invoiceNumber || `Invoice`}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-white font-medium">${inv.amount.toLocaleString()}</span>
+                          <span className="text-white font-medium">{currencySymbol(inv.currency)}{inv.amount.toLocaleString()} {inv.currency}</span>
                           <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[inv.status]}`}>{inv.status}</span>
                         </div>
                       </button>
@@ -575,9 +583,15 @@ export default function ClientHub({ client }: { client: Client }) {
                     <p className="font-medium text-white">{inv.invoiceNumber || "Invoice"}</p>
                     {inv.project && <p className="text-xs text-gray-500 mt-0.5">Project: {inv.project.name}</p>}
                     {inv.notes && <p className="text-xs text-gray-500 mt-0.5">{inv.notes}</p>}
+                    {inv.status === "paid" && inv.currency === "USD" && inv.cadAmount != null && (
+                      <p className="text-xs text-emerald-400 mt-0.5">
+                        ≈ ${inv.cadAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} CAD
+                        {inv.exchangeRate && <span className="text-gray-500"> (rate {inv.exchangeRate.toFixed(4)}{inv.paidAt ? ` on ${format(new Date(inv.paidAt), "MMM d, yyyy")}` : ""})</span>}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-white font-bold text-lg">${inv.amount.toLocaleString()}</span>
+                    <span className="text-white font-bold text-lg">{currencySymbol(inv.currency)}{inv.amount.toLocaleString()} <span className="text-xs text-gray-500 font-normal">{inv.currency}</span></span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[inv.status]}`}>{inv.status}</span>
                     {inv.status !== "paid" && (
                       <button onClick={() => markInvoicePaid(inv.id)}
@@ -586,7 +600,7 @@ export default function ClientHub({ client }: { client: Client }) {
                       </button>
                     )}
                     {inv.status === "paid" && (
-                      <ApplyToPersonalButton amount={inv.amount} clientName={client.company || client.name} invoiceNumber={inv.invoiceNumber} />
+                      <ApplyToPersonalButton amount={inv.cadAmount ?? inv.amount} clientName={client.company || client.name} invoiceNumber={inv.invoiceNumber} />
                     )}
                     <button onClick={() => openEditInvoice(inv)} title="Edit invoice"
                       className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors">
@@ -647,14 +661,22 @@ export default function ClientHub({ client }: { client: Client }) {
             <Field label="Address">
               <textarea value={clientData.address} onChange={e => setClientData({ ...clientData, address: e.target.value })} rows={2} className={input} placeholder="123 Main St, City, State, ZIP" />
             </Field>
-            <Field label="Status">
-              <select value={clientData.status} onChange={e => setClientData({ ...clientData, status: e.target.value })} className={input}>
-                <option value="active">Active</option>
-                <option value="lead">Lead</option>
-                <option value="completed">Completed</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Status">
+                <select value={clientData.status} onChange={e => setClientData({ ...clientData, status: e.target.value })} className={input}>
+                  <option value="active">Active</option>
+                  <option value="lead">Lead</option>
+                  <option value="completed">Completed</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </Field>
+              <Field label="Currency">
+                <select value={clientData.currency} onChange={e => setClientData({ ...clientData, currency: e.target.value })} className={input}>
+                  <option value="CAD">CAD</option>
+                  <option value="USD">USD</option>
+                </select>
+              </Field>
+            </div>
             <Field label="Notes">
               <textarea value={clientData.notes} onChange={e => setClientData({ ...clientData, notes: e.target.value })} rows={3} className={input} />
             </Field>
