@@ -113,6 +113,27 @@ export default function ClientHub({ client }: { client: Client }) {
     setShowInvoiceForm(true);
   }
 
+  function openInvoiceForProject(project: Project) {
+    // Base the suggested amount on what's actually been PAID so far,
+    // not the static deposit field, so it stays accurate as invoices are paid.
+    const paidSoFar = invoices
+      .filter(i => i.projectId === project.id && i.status === "paid")
+      .reduce((s, i) => s + i.amount, 0);
+    const remaining = Math.max(0, project.totalCost - paidSoFar);
+    const isDeposit = !project.depositPaid && project.depositAmount > 0;
+    const amount = isDeposit ? Math.min(project.depositAmount, remaining) : remaining;
+    const description = isDeposit ? `Deposit – ${project.name}` : `Balance due – ${project.name}`;
+    setInvoiceForm({
+      projectId: project.id, invoiceNumber: "", amount: String(amount), status: "draft", dueDate: "",
+      notes: `Project: ${project.name}`,
+      paymentMethod: "", paymentEmail: "",
+      lineItems: [{ description, quantity: "1", unitPrice: String(amount) }],
+      paymentSchedule: [],
+    });
+    setEditingInvoiceId(null);
+    setShowInvoiceForm(true);
+  }
+
   const [loading, setLoading] = useState(false);
 
   // Edit client
@@ -445,6 +466,10 @@ export default function ClientHub({ client }: { client: Client }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[p.status]}`}>{p.status}</span>
+                  <button onClick={() => openInvoiceForProject(p)}
+                    className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors">
+                    <Plus size={13} /> Invoice
+                  </button>
                   <button onClick={() => openEditProject(p)} title="Edit project"
                     className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors">
                     <Pencil size={14} />
@@ -481,13 +506,14 @@ export default function ClientHub({ client }: { client: Client }) {
                   <p className="text-xs text-gray-500 mb-2">Invoices</p>
                   <div className="space-y-1">
                     {invoices.filter(i => i.projectId === p.id).map(inv => (
-                      <div key={inv.id} className="flex items-center justify-between text-sm">
+                      <button key={inv.id} onClick={() => openEditInvoice(inv)}
+                        className="w-full flex items-center justify-between text-sm hover:bg-gray-800/60 rounded px-1.5 py-1 -mx-1.5 transition-colors">
                         <span className="text-gray-400">{inv.invoiceNumber || `Invoice`}</span>
                         <div className="flex items-center gap-3">
                           <span className="text-white font-medium">${inv.amount.toLocaleString()}</span>
                           <span className={`px-2 py-0.5 rounded-full text-xs ${statusBadge[inv.status]}`}>{inv.status}</span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
