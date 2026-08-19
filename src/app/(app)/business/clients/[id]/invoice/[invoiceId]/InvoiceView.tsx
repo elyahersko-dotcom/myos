@@ -163,7 +163,6 @@ export default function InvoiceView({
                   <th className="text-left py-2.5 px-3 text-xs uppercase tracking-wide font-semibold text-gray-900 w-10">#</th>
                   <th className="text-left py-2.5 px-3 text-xs uppercase tracking-wide font-semibold text-gray-900">Item & Description</th>
                   <th className="text-center py-2.5 px-2 text-xs uppercase tracking-wide font-semibold text-gray-900 w-16">Qty</th>
-                  <th className="text-right py-2.5 px-2 text-xs uppercase tracking-wide font-semibold text-gray-900 w-24">Rate</th>
                   <th className="text-right py-2.5 px-3 text-xs uppercase tracking-wide font-semibold text-gray-900 w-28">Amount</th>
                   {editing && <th className="w-8" />}
                 </tr>
@@ -191,15 +190,15 @@ export default function InvoiceView({
                           }} className={inputCls + " text-center"} />
                         ) : qty.toFixed(2)}
                       </td>
-                      <td className="py-3 px-2 text-right text-gray-600">
+                      <td className="py-3 px-3 text-right text-gray-800">
                         {editing ? (
-                          <input type="number" step="0.01" value={li.unitPrice} onChange={e => {
-                            const u = [...form.lineItems]; u[i] = { ...u[i], unitPrice: e.target.value };
+                          <input type="number" step="0.01" value={li.unitPrice ? String((parseFloat(li.unitPrice || "0") * qty).toFixed(2)) : ""} onChange={e => {
+                            const amt = parseFloat(e.target.value || "0");
+                            const u = [...form.lineItems]; u[i] = { ...u[i], unitPrice: String(amt / (qty || 1)) };
                             setForm({ ...form, lineItems: u });
                           }} className={inputCls + " text-right"} />
-                        ) : price.toFixed(2)}
+                        ) : (qty * price).toFixed(2)}
                       </td>
-                      <td className="py-3 px-3 text-right text-gray-800">{(qty * price).toFixed(2)}</td>
                       {editing && (
                         <td className="text-center">
                           <button type="button" onClick={() => setForm({ ...form, lineItems: form.lineItems.filter((_, j) => j !== i) })}
@@ -233,11 +232,7 @@ export default function InvoiceView({
                     </div>
                   </>
                 )}
-                <div className="flex justify-between text-sm text-gray-700 font-semibold pt-1 border-t border-gray-100">
-                  <span>Total</span>
-                  <span>{fmt(displayDueNow)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-gray-50 rounded px-3 py-2 mt-1">
+                <div className="flex justify-between items-center bg-gray-50 rounded px-3 py-2 mt-1 border-t border-gray-100 pt-2">
                   <span className="font-bold text-gray-900">Balance Due</span>
                   <span className="font-bold text-gray-900">{fmt(saved.status === "paid" && !editing ? 0 : displayDueNow)}</span>
                 </div>
