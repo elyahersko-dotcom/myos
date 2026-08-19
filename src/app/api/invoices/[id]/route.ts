@@ -7,7 +7,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
-  if (body.dueDate) body.dueDate = new Date(body.dueDate);
+  if ("dueDate" in body) body.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+  if ("amount" in body) body.amount = parseFloat(body.amount);
   const invoice = await prisma.invoice.update({ where: { id: params.id }, data: body });
   return NextResponse.json(invoice);
 }
