@@ -8,6 +8,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const client = await prisma.client.update({ where: { id: params.id }, data: body });
+
+  // Marking a client "completed" auto-completes all their (non-cancelled) projects too.
+  if (body.status === "completed") {
+    await prisma.project.updateMany({
+      where: { clientId: params.id, status: { not: "cancelled" } },
+      data: { status: "completed" },
+    });
+  }
+
   return NextResponse.json(client);
 }
 

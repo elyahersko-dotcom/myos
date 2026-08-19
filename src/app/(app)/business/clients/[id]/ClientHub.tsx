@@ -165,6 +165,10 @@ export default function ClientHub({ client }: { client: Client }) {
     });
     const updated = await res.json();
     setDisplayClient({ ...displayClient, ...updated });
+    // Server auto-completes all (non-cancelled) projects when the client is marked completed.
+    if (clientData.status === "completed") {
+      setProjects(projects.map(p => p.status === "cancelled" ? p : { ...p, status: "completed" }));
+    }
     setShowEditForm(false);
     setEditLoading(false);
   }
