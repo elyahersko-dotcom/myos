@@ -748,25 +748,34 @@ export default function ClientHub({ client }: { client: Client }) {
             {invoiceForm.projectId && (() => {
               const p = projects.find(pr => pr.id === invoiceForm.projectId);
               if (!p) return null;
+              // Exclude this invoice's own amount when editing, so the remaining
+              // balance doesn't double-count the invoice currently being edited.
+              const alreadyInvoiced = invoices
+                .filter(i => i.projectId === p.id && i.id !== editingInvoiceId)
+                .reduce((s, i) => s + i.amount, 0);
+              const remaining = Math.max(0, p.totalCost - alreadyInvoiced);
               return (
                 <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-1">
                   <div className="flex justify-between text-gray-400"><span>Project Total</span><span className="text-white font-medium">${p.totalCost.toLocaleString()}</span></div>
                   <div className="flex justify-between text-gray-400"><span>Deposit</span><span className="text-white">${p.depositAmount.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-gray-400"><span>Balance Due</span><span className="text-orange-400 font-medium">${(p.totalCost - p.depositAmount).toLocaleString()}</span></div>
+                  {alreadyInvoiced > 0 && (
+                    <div className="flex justify-between text-gray-400"><span>Already Invoiced</span><span className="text-white">${alreadyInvoiced.toLocaleString()}</span></div>
+                  )}
+                  <div className="flex justify-between text-gray-400"><span>Remaining Balance</span><span className="text-orange-400 font-medium">${remaining.toLocaleString()}</span></div>
                   <div className="flex justify-between text-gray-400"><span>Deposit Paid?</span><span className={p.depositPaid ? "text-green-400" : "text-red-400"}>{p.depositPaid ? "Yes" : "No"}</span></div>
                   {/* Quick-fill buttons */}
                   <div className="flex gap-2 pt-1">
-                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Deposit – ${p.name}`, quantity: "1", unitPrice: String(p.depositAmount) }] })}
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Deposit – ${p.name}`, quantity: "1", unitPrice: String(Math.min(p.depositAmount, remaining)) }] })}
                       className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
-                      Fill Deposit (${p.depositAmount.toLocaleString()})
+                      Fill Deposit (${Math.min(p.depositAmount, remaining).toLocaleString()})
                     </button>
-                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Balance due – ${p.name}`, quantity: "1", unitPrice: String(p.totalCost - p.depositAmount) }] })}
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `Balance due – ${p.name}`, quantity: "1", unitPrice: String(remaining) }] })}
                       className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
-                      Fill Balance (${(p.totalCost - p.depositAmount).toLocaleString()})
+                      Fill Balance (${remaining.toLocaleString()})
                     </button>
-                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `${p.name} – full payment`, quantity: "1", unitPrice: String(p.totalCost) }] })}
+                    <button type="button" onClick={() => setInvoiceForm({ ...invoiceForm, lineItems: [{ description: `${p.name} – full payment`, quantity: "1", unitPrice: String(remaining) }] })}
                       className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 transition-colors">
-                      Full (${p.totalCost.toLocaleString()})
+                      Full (${remaining.toLocaleString()})
                     </button>
                   </div>
                 </div>
