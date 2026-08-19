@@ -11,8 +11,12 @@ type Client = {
   email: string | null;
   phone: string | null;
   status: string;
+  totalValue: number;
+  owed: number;
   _count: { tasks: number; invoices: number };
 };
+
+const fmt = (n: number) => "$" + n.toLocaleString();
 
 export default function ClientList({ initialClients }: { initialClients: Client[] }) {
   const router = useRouter();
@@ -56,10 +60,9 @@ export default function ClientList({ initialClients }: { initialClients: Client[
           <thead>
             <tr className="border-b border-gray-800">
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Company</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tasks</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Invoices</th>
+              <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Total Value</th>
+              <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Owed</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -67,7 +70,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
           <tbody className="divide-y divide-gray-800">
             {clients.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-500 text-sm">
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-500 text-sm">
                   No clients yet. Create your first client above.
                 </td>
               </tr>
@@ -79,10 +82,11 @@ export default function ClientList({ initialClients }: { initialClients: Client[
                     {displayName(client)}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-gray-400 text-sm">{client.company ? client.name || "—" : "—"}</td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client.email || "—"}</td>
-                <td className="px-4 py-3 text-gray-400 text-sm">{client._count.tasks}</td>
-                <td className="px-4 py-3 text-gray-400 text-sm">{client._count.invoices}</td>
+                <td className="px-4 py-3 text-white text-sm text-right font-medium">{client.totalValue > 0 ? fmt(client.totalValue) : "—"}</td>
+                <td className={`px-4 py-3 text-sm text-right font-medium ${client.owed > 0 ? "text-orange-400" : "text-green-400"}`}>
+                  {client.owed > 0 ? fmt(client.owed) : "✓ $0"}
+                </td>
                 <td className="px-4 py-3">
                   <select
                     value={client.status}
