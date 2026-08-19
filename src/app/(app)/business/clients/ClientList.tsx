@@ -13,6 +13,7 @@ type Client = {
   status: string;
   totalValue: number;
   owed: number;
+  projectCount: number;
   _count: { tasks: number; invoices: number };
 };
 
@@ -61,6 +62,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
             <tr className="border-b border-gray-800">
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Company</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+              <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Projects</th>
               <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Total Value</th>
               <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Owed</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
@@ -70,7 +72,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
           <tbody className="divide-y divide-gray-800">
             {clients.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-gray-500 text-sm">
+                <td colSpan={7} className="px-4 py-10 text-center text-gray-500 text-sm">
                   No clients yet. Create your first client above.
                 </td>
               </tr>
@@ -83,6 +85,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client.email || "—"}</td>
+                <td className="px-4 py-3 text-gray-400 text-sm text-right">{client.projectCount}</td>
                 <td className="px-4 py-3 text-white text-sm text-right font-medium">{client.totalValue > 0 ? fmt(client.totalValue) : "—"}</td>
                 <td className={`px-4 py-3 text-sm text-right font-medium ${client.owed > 0 ? "text-orange-400" : "text-green-400"}`}>
                   {client.owed > 0 ? fmt(client.owed) : "✓ $0"}

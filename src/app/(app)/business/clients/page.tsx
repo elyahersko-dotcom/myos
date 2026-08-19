@@ -26,7 +26,7 @@ export default async function ClientsPage() {
       .filter(p => p.status !== "cancelled")
       .reduce((s, p) => s + Math.max(0, p.totalCost - (invoicedByProject[p.id] || 0)), 0);
     const owed = (totalInvoiced - totalPaid) + uninvoicedProjectTotal;
-    return { ...c, totalValue, owed };
+    return { ...c, totalValue, owed, projectCount: projects.length };
   });
 
   return (
