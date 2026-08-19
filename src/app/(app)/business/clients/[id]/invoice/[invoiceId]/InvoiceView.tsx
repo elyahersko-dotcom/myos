@@ -128,8 +128,6 @@ export default function InvoiceView({
                 ) : (
                   saved.invoiceNumber && <p className="text-sm font-medium text-gray-500 mt-1"># {saved.invoiceNumber}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-4">Balance Due</p>
-                <p className="text-2xl font-bold text-gray-900">{fmt(saved.status === "paid" && !editing ? 0 : displayDueNow)}</p>
               </div>
             </div>
 
