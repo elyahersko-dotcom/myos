@@ -431,7 +431,14 @@ export default function ClientHub({ client }: { client: Client }) {
               <Plus size={15} /> New Project
             </button>
           </div>
-          {projects.map(p => (
+          {projects.map(p => {
+            // Real balance due = project cost minus whatever's actually been PAID on this
+            // project's invoices — not a static totalCost-deposit guess.
+            const paidForProject = invoices
+              .filter(i => i.projectId === p.id && i.status === "paid")
+              .reduce((s, i) => s + i.amount, 0);
+            const realBalanceDue = Math.max(0, p.totalCost - paidForProject);
+            return (
             <div key={p.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -456,12 +463,14 @@ export default function ClientHub({ client }: { client: Client }) {
                   <p className="text-white font-bold text-lg">${p.totalCost.toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-800 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Deposit Required</p>
-                  <p className="text-white font-bold text-lg">${p.depositAmount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mb-1">Paid So Far</p>
+                  <p className="text-green-400 font-bold text-lg">${paidForProject.toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-800 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Balance Due</p>
-                  <p className="text-orange-400 font-bold text-lg">${(p.totalCost - p.depositAmount).toLocaleString()}</p>
+                  <p className={`font-bold text-lg ${realBalanceDue > 0 ? "text-orange-400" : "text-green-400"}`}>
+                    {realBalanceDue > 0 ? `$${realBalanceDue.toLocaleString()}` : "✓ Paid in Full"}
+                  </p>
                 </div>
                 <div className="bg-gray-800 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Deposit Status</p>
@@ -493,7 +502,7 @@ export default function ClientHub({ client }: { client: Client }) {
                 </div>
               )}
             </div>
-          ))}
+          );})}
           {projects.length === 0 && <p className="text-center text-gray-500 py-8">No projects yet.</p>}
         </div>
       )}
@@ -722,9 +731,14 @@ export default function ClientHub({ client }: { client: Client }) {
                   const projectId = e.target.value;
                   const project = projects.find(p => p.id === projectId);
                   if (project) {
-                    // Default to deposit invoice if deposit not paid, otherwise full balance
+                    // Base the suggested amount on what's actually been PAID so far,
+                    // not the static deposit field, so it stays accurate as invoices are paid.
+                    const paidSoFar = invoices
+                      .filter(i => i.projectId === project.id && i.status === "paid")
+                      .reduce((s, i) => s + i.amount, 0);
+                    const remaining = Math.max(0, project.totalCost - paidSoFar);
                     const isDeposit = !project.depositPaid && project.depositAmount > 0;
-                    const amount = isDeposit ? project.depositAmount : project.totalCost - project.depositAmount;
+                    const amount = isDeposit ? Math.min(project.depositAmount, remaining) : remaining;
                     const description = isDeposit
                       ? `Deposit – ${project.name}`
                       : `Balance due – ${project.name}`;
