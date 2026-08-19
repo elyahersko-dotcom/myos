@@ -30,6 +30,21 @@ export default function ClientList({ initialClients }: { initialClients: Client[
     router.refresh();
   }
 
+  async function handleStatusChange(id: string, status: string) {
+    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+    await fetch(`/api/clients/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  const statusPillClass = (status: string) =>
+    status === "active" ? "bg-green-900/50 text-green-400" :
+    status === "lead" ? "bg-yellow-900/50 text-yellow-400" :
+    status === "completed" ? "bg-blue-900/50 text-blue-400" :
+    "bg-gray-800 text-gray-400";
+
   const confirmClient = clients.find((c) => c.id === confirmId);
   // Display label is always company if set, otherwise contact name
   const displayName = (c: Client) => c.company || c.name;
@@ -69,13 +84,17 @@ export default function ClientList({ initialClients }: { initialClients: Client[
                 <td className="px-4 py-3 text-gray-400 text-sm">{client._count.tasks}</td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{client._count.invoices}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    client.status === "active" ? "bg-green-900/50 text-green-400" :
-                    client.status === "lead" ? "bg-yellow-900/50 text-yellow-400" :
-                    "bg-gray-800 text-gray-400"
-                  }`}>
-                    {client.status}
-                  </span>
+                  <select
+                    value={client.status}
+                    onChange={(e) => { e.stopPropagation(); handleStatusChange(client.id, e.target.value); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`appearance-none cursor-pointer inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border-0 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${statusPillClass(client.status)}`}
+                  >
+                    <option value="active">active</option>
+                    <option value="lead">lead</option>
+                    <option value="completed">completed</option>
+                    <option value="inactive">inactive</option>
+                  </select>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button

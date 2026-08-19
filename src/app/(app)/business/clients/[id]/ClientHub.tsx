@@ -625,6 +625,7 @@ export default function ClientHub({ client }: { client: Client }) {
               <select value={clientData.status} onChange={e => setClientData({ ...clientData, status: e.target.value })} className={input}>
                 <option value="active">Active</option>
                 <option value="lead">Lead</option>
+                <option value="completed">Completed</option>
                 <option value="inactive">Inactive</option>
               </select>
             </Field>

@@ -56,6 +56,7 @@ export default function ClientActions() {
                 <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inp}>
                   <option value="active">Active</option>
                   <option value="lead">Lead</option>
+                  <option value="completed">Completed</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
