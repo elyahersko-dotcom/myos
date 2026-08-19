@@ -11,6 +11,7 @@ type Client = {
   email: string | null;
   phone: string | null;
   status: string;
+  currency: string;
   totalValue: number;
   owed: number;
   projectCount: number;
@@ -65,6 +66,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
               <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Projects</th>
               <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Total Value</th>
               <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Owed</th>
+              <th className="text-center px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Currency</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -72,7 +74,7 @@ export default function ClientList({ initialClients }: { initialClients: Client[
           <tbody className="divide-y divide-gray-800">
             {clients.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-500 text-sm">
+                <td colSpan={8} className="px-4 py-10 text-center text-gray-500 text-sm">
                   No clients yet. Create your first client above.
                 </td>
               </tr>
@@ -89,6 +91,11 @@ export default function ClientList({ initialClients }: { initialClients: Client[
                 <td className="px-4 py-3 text-white text-sm text-right font-medium">{client.totalValue > 0 ? fmt(client.totalValue) : "—"}</td>
                 <td className={`px-4 py-3 text-sm text-right font-medium ${client.owed > 0 ? "text-orange-400" : "text-green-400"}`}>
                   {client.owed > 0 ? fmt(client.owed) : "✓ $0"}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
+                    {client.currency || "CAD"}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <select
