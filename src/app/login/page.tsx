@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Logo from "@/components/Logo";
 
 export default function LoginPage() {
@@ -45,7 +46,10 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm text-gray-300">Password</label>
+              <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300">Forgot password?</Link>
+            </div>
             <input
               type="password"
               value={password}
