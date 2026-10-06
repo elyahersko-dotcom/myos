@@ -55,6 +55,9 @@ export default async function InvoicePrintPage({
         paidAt: invoice.paidAt ? invoice.paidAt.toISOString() : null,
         exchangeRate: invoice.exchangeRate,
         cadAmount: invoice.cadAmount,
+        paymentSchedule: Array.isArray(invoice.paymentSchedule)
+          ? (invoice.paymentSchedule as { label: string; amount: string; dueDate: string }[])
+          : [],
       }}
       client={{
         name: invoice.client.name,

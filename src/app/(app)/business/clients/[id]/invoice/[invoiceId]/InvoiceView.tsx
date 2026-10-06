@@ -4,11 +4,13 @@ import { format } from "date-fns";
 import { Pencil, Printer, X, Plus, Check } from "lucide-react";
 
 type LineItem = { description: string; quantity: string; unitPrice: string };
+type ScheduleItem = { label: string; amount: string; dueDate: string };
 type Invoice = {
   id: string; invoiceNumber: string | null; amount: number; status: string;
   dueDate: string | null; createdAt: string; lineItems: LineItem[];
   notes: string | null; paymentMethod: string | null; paymentEmail: string | null;
   currency: string; paidAt: string | null; exchangeRate: number | null; cadAmount: number | null;
+  paymentSchedule: ScheduleItem[];
 };
 type ClientInfo = { name: string; company: string | null; email: string | null; phone: string | null; address: string | null };
 type ProjectInfo = { name: string; totalCost: number; depositAmount: number; endDate: string | null };
@@ -35,6 +37,7 @@ export default function InvoiceView({
     paymentMethod: invoice.paymentMethod || "",
     paymentEmail: invoice.paymentEmail || "",
     lineItems: invoice.lineItems.length > 0 ? invoice.lineItems : [{ description: "Services rendered", quantity: "1", unitPrice: String(invoice.amount) }],
+    paymentSchedule: invoice.paymentSchedule || [],
   });
 
   const dueNow = form.lineItems.reduce((s, li) => s + parseFloat(li.unitPrice || "0") * parseFloat(li.quantity || "1"), 0);
@@ -57,12 +60,13 @@ export default function InvoiceView({
         paymentEmail: form.paymentEmail || null,
         lineItems,
         amount,
+        paymentSchedule: form.paymentSchedule.filter(s => s.label || s.amount),
       }),
     });
     setSaving(false);
     if (!res.ok) { alert("Failed to save invoice."); return; }
     const updated = await res.json();
-    setSaved({ ...saved, ...updated, dueDate: updated.dueDate, lineItems });
+    setSaved({ ...saved, ...updated, dueDate: updated.dueDate, lineItems, paymentSchedule: form.paymentSchedule.filter(s => s.label || s.amount) });
     setEditing(false);
   }
 
@@ -210,10 +214,39 @@ export default function InvoiceView({
               </tbody>
             </table>
             {editing && (
-              <button type="button" onClick={() => setForm({ ...form, lineItems: [...form.lineItems, { description: "", quantity: "1", unitPrice: "" }] })}
-                className="flex items-center gap-1 text-sm font-medium mb-6" style={{ color: "#0a9e90" }}>
-                <Plus size={14} /> Add line item
-              </button>
+              <>
+                <button type="button" onClick={() => setForm({ ...form, lineItems: [...form.lineItems, { description: "", quantity: "1", unitPrice: "" }] })}
+                  className="flex items-center gap-1 text-sm font-medium mb-6" style={{ color: "#0a9e90" }}>
+                  <Plus size={14} /> Add line item
+                </button>
+
+                {/* Payment schedule / installments editor */}
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Payment Schedule <span className="font-normal text-gray-400 text-xs">(optional — split into installments)</span></p>
+                  {form.paymentSchedule.map((s, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 mb-2 items-center">
+                      <input placeholder="e.g. Due at completion" value={s.label} onChange={e => {
+                        const u = [...form.paymentSchedule]; u[i] = { ...u[i], label: e.target.value };
+                        setForm({ ...form, paymentSchedule: u });
+                      }} className={inputCls + " col-span-5"} />
+                      <input placeholder="Amount" type="number" step="0.01" value={s.amount} onChange={e => {
+                        const u = [...form.paymentSchedule]; u[i] = { ...u[i], amount: e.target.value };
+                        setForm({ ...form, paymentSchedule: u });
+                      }} className={inputCls + " col-span-3"} />
+                      <input type="date" value={s.dueDate} onChange={e => {
+                        const u = [...form.paymentSchedule]; u[i] = { ...u[i], dueDate: e.target.value };
+                        setForm({ ...form, paymentSchedule: u });
+                      }} className={inputCls + " col-span-3"} />
+                      <button type="button" onClick={() => setForm({ ...form, paymentSchedule: form.paymentSchedule.filter((_, j) => j !== i) })}
+                        className="col-span-1 text-gray-400 hover:text-red-500 flex justify-center"><X size={14} /></button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setForm({ ...form, paymentSchedule: [...form.paymentSchedule, { label: "", amount: "", dueDate: "" }] })}
+                    className="flex items-center gap-1 text-sm font-medium" style={{ color: "#0a9e90" }}>
+                    <Plus size={14} /> Add installment
+                  </button>
+                </div>
+              </>
             )}
 
             {/* Summary */}
@@ -235,13 +268,31 @@ export default function InvoiceView({
                   <span className="font-bold text-gray-900">Balance Due</span>
                   <span className="font-bold text-gray-900">{fmt(saved.status === "paid" && !editing ? 0 : displayDueNow)}</span>
                 </div>
-                {project && balanceDue !== null && balanceDue > 0.01 && (
+                {!editing && saved.paymentSchedule.length === 0 && project && balanceDue !== null && balanceDue > 0.01 && (
                   <p className="text-xs text-gray-400 pt-1">
                     Remaining project balance due {balanceDueWhen}: {fmt(balanceDue)}
                   </p>
                 )}
               </div>
             </div>
+
+            {/* Payment schedule / installments — shown once actually set */}
+            {!editing && saved.paymentSchedule.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Payment Schedule</p>
+                <table className="w-full">
+                  <tbody>
+                    {saved.paymentSchedule.map((s, i) => (
+                      <tr key={i} className="border-b border-gray-100">
+                        <td className="py-2 text-gray-800">{s.label || "Installment"}</td>
+                        <td className="py-2 text-gray-500 text-sm text-right">{s.dueDate ? format(new Date(s.dueDate), "MMM d, yyyy") : "—"}</td>
+                        <td className="py-2 text-right font-medium text-gray-900 w-28">{fmt(parseFloat(s.amount || "0"))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Paid stamp */}
             {!editing && saved.status === "paid" && (
