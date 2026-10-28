@@ -28,7 +28,11 @@ export default function ForgotPasswordPage() {
     });
     const data = await res.json();
     setLoading(false);
-    setMessage(data.message || "If that account exists, a reset code was sent.");
+    if (!res.ok || !data.ok) {
+      setError(data.message || data.error || "Couldn't send a reset code.");
+      return;
+    }
+    setMessage(data.message);
     setStep("reset");
   }
 
